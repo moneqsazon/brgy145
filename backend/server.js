@@ -1120,111 +1120,6 @@ app.delete('/residents/:id', async (req, res) => {
   }
 });
 
-/**
- * CERTIFICATES
- */
-app.get('/certificates', async (req, res) => {
-  try {
-    const { type } = req.query;
-    const whereClause = type ? 'WHERE c.type = ?' : '';
-    const params = type ? [type] : [];
-    const [rows] = await pool.query(
-      `SELECT c.certificate_id, c.type, r.full_name,
-              c.purpose, c.date_issued,
-              c.validity_months, c.issued_by, c.resident_id
-       FROM certificates c
-       JOIN residents r ON c.resident_id = r.resident_id
-       ${whereClause}
-       ORDER BY c.certificate_id DESC`,
-      params
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch certificates' });
-  }
-});
-
-app.get('/certificates/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const [rows] = await pool.query(
-      `SELECT certificate_id, type, resident_id, purpose, date_issued, validity_months, issued_by
-       FROM certificates WHERE certificate_id = ?`,
-      [id]
-    );
-    if (rows.length === 0)
-      return res.status(404).json({ error: 'Certificate not found' });
-    res.json(rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch certificate' });
-  }
-});
-
-app.post('/certificates', async (req, res) => {
-  const { resident_id, type, purpose, validity_months, issued_by } = req.body;
-  try {
-    if (!resident_id || !type) {
-      return res
-        .status(400)
-        .json({ error: 'resident_id and type are required' });
-    }
-    const [result] = await pool.query(
-      `INSERT INTO certificates
-        (resident_id, type, purpose, validity_months, issued_by)
-       VALUES (?,?,?,?,?)`,
-      [
-        resident_id,
-        type,
-        purpose || null,
-        validity_months || 6,
-        issued_by || 'Barangay Chairman',
-      ]
-    );
-    res.json({
-      message: 'Certificate created',
-      certificate_id: result.insertId,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to create certificate' });
-  }
-});
-
-app.put('/certificates/:id', async (req, res) => {
-  const { id } = req.params;
-  const { resident_id, type, purpose, validity_months, issued_by } = req.body;
-  try {
-    const [result] = await pool.query(
-      `UPDATE certificates SET resident_id = ?, type = ?, purpose = ?, validity_months = ?, issued_by = ?
-       WHERE certificate_id = ?`,
-      [resident_id, type, purpose, validity_months, issued_by, id]
-    );
-    if (result.affectedRows === 0)
-      return res.status(404).json({ error: 'Certificate not found' });
-    res.json({ message: 'Certificate updated' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to update certificate' });
-  }
-});
-
-app.delete('/certificates/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [result] = await pool.query(
-      `DELETE FROM certificates WHERE certificate_id = ?`,
-      [id]
-    );
-    if (result.affectedRows === 0)
-      return res.status(404).json({ error: 'Certificate not found' });
-    res.json({ message: 'Certificate deleted' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to delete certificate' });
-  }
-});
 
 /**
  * AUTHENTICATION
@@ -2819,7 +2714,18 @@ app.post('/certificate-of-cohabitation', async (req, res) => {
       transaction_number,
     } = req.body;
 
-    if (!full_name1 || !full_name2 || !address || !date_started || !date_issued) {
+    // Match DB schema constraints: resident1_id, resident2_id, dob1, dob2 are NOT NULL
+    if (
+      !resident1_id ||
+      !resident2_id ||
+      !full_name1 ||
+      !dob1 ||
+      !full_name2 ||
+      !dob2 ||
+      !address ||
+      !date_started ||
+      !date_issued
+    ) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -2877,6 +2783,20 @@ app.put('/certificate-of-cohabitation/:id', async (req, res) => {
       transaction_number,
     } = req.body;
 
+    if (
+      !resident1_id ||
+      !resident2_id ||
+      !full_name1 ||
+      !dob1 ||
+      !full_name2 ||
+      !dob2 ||
+      !address ||
+      !date_started ||
+      !date_issued
+    ) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
     const [result] = await pool.query(
       `UPDATE certificate_of_cohabitation
        SET resident1_id=?, resident2_id=?, full_name1=?, dob1=?, full_name2=?, dob2=?, address=?, date_started=?, date_issued=?, witness1_name=?, witness2_name=?, transaction_number=?, date_updated=NOW()
@@ -2930,6 +2850,425 @@ app.delete('/certificate-of-cohabitation/:id', async (req, res) => {
   }
 });
 
+
+// Get all solo parent records
+app.get('/solo-parent-records', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        solo_parent_id,
+        resident_id,
+        transactionNum,
+        full_name,
+        address,
+        dob,
+        age,
+        contact_no,
+        residents_since_year,
+        unwed_since_year,
+        employment_status,
+        employment_remarks,
+        date_issued,
+        transaction_number,
+        is_active,
+        date_created,
+        date_updated
+      FROM solo_parent_records
+      WHERE is_active = 1
+      ORDER BY date_created DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching solo parent records:', error);
+    res.status(500).json({ error: 'Failed to fetch records' });
+  }
+});
+
+// Get single solo parent record by ID
+app.get('/solo-parent-records/:id', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM solo_parent_records WHERE solo_parent_id = ?',
+      [req.params.id]
+    );
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+    
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Error fetching solo parent record:', error);
+    res.status(500).json({ error: 'Failed to fetch record' });
+  }
+});
+
+// Create new solo parent record
+app.post('/solo-parent-records', async (req, res) => {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    const {
+      resident_id,
+      full_name,
+      age,
+      address,
+      dob,
+      contact_no,
+      residents_since_year,
+      unwed_since_year,
+      employment_status,
+      employment_remarks,
+      date_issued
+    } = req.body;
+
+    // Generate transaction number
+    const transactionNum = `SP-${Date.now()}`;
+
+    const [result] = await connection.query(`
+      INSERT INTO solo_parent_records (
+        resident_id,
+        transactionNum,
+        full_name,
+        age,
+        address,
+        dob,
+        contact_no,
+        residents_since_year,
+        unwed_since_year,
+        employment_status,
+        employment_remarks,
+        date_issued,
+        transaction_number
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      resident_id,
+      transactionNum,
+      full_name,
+      age,
+      address,
+      dob,
+      contact_no,
+      residents_since_year,
+      unwed_since_year,
+      employment_status,
+      employment_remarks,
+      date_issued,
+      transactionNum
+    ]);
+
+    await connection.commit();
+    
+    res.status(201).json({
+      solo_parent_id: result.insertId,
+      transactionNum,
+      message: 'Solo parent record created successfully'
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error creating solo parent record:', error);
+    res.status(500).json({ error: 'Failed to create record' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Update solo parent record
+app.put('/solo-parent-records/:id', async (req, res) => {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    const {
+      resident_id,
+      full_name,
+      age,
+      address,
+      dob,
+      contact_no,
+      residents_since_year,
+      unwed_since_year,
+      employment_status,
+      employment_remarks,
+      date_issued
+    } = req.body;
+
+    const [result] = await connection.query(`
+      UPDATE solo_parent_records SET
+        resident_id = ?,
+        full_name = ?,
+        age = ?,
+        address = ?,
+        dob = ?,
+        contact_no = ?,
+        residents_since_year = ?,
+        unwed_since_year = ?,
+        employment_status = ?,
+        employment_remarks = ?,
+        date_issued = ?
+      WHERE solo_parent_id = ?
+    `, [
+      resident_id,
+      full_name,
+      age,
+      address,
+      dob,
+      contact_no,
+      residents_since_year,
+      unwed_since_year,
+      employment_status,
+      employment_remarks,
+      date_issued,
+      req.params.id
+    ]);
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Record not found' });
+    }
+
+    await connection.commit();
+    res.json({ message: 'Solo parent record updated successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error updating solo parent record:', error);
+    res.status(500).json({ error: 'Failed to update record' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Soft delete solo parent record
+app.delete('/solo-parent-records/:id', async (req, res) => {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    const [result] = await connection.query(
+      'UPDATE solo_parent_records SET is_active = 0 WHERE solo_parent_id = ?',
+      [req.params.id]
+    );
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Record not found' });
+    }
+
+    await connection.commit();
+    res.json({ message: 'Solo parent record deleted successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error deleting solo parent record:', error);
+    res.status(500).json({ error: 'Failed to delete record' });
+  } finally {
+    connection.release();
+  }
+});
+
+// ==================== SOLO PARENT CHILDREN ENDPOINTS ====================
+// Get all children for a solo parent
+app.get('/solo-parent-children/:soloParentId', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM solo_parent_children WHERE solo_parent_id = ? ORDER BY date_created ASC',
+      [req.params.soloParentId]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching children:', error);
+    res.status(500).json({ error: 'Failed to fetch children' });
+  }
+});
+
+// Create children for a solo parent (bulk insert)
+app.post('/solo-parent-children/:soloParentId', async (req, res) => {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    const soloParentId = req.params.soloParentId;
+    const children = req.body; // Array of children
+
+    if (!Array.isArray(children) || children.length === 0) {
+      return res.status(400).json({ error: 'Invalid children data' });
+    }
+
+    // Delete existing children first
+    await connection.query(
+      'DELETE FROM solo_parent_children WHERE solo_parent_id = ?',
+      [soloParentId]
+    );
+
+    // Insert new children
+    const values = children.map(child => [
+      soloParentId,
+      child.child_name,
+      child.child_age,
+      child.child_birthday,
+      child.child_level,
+      child.child_level_remarks,
+      child.child_gender,
+      child.child_relationship,
+      child.child_relationship_remarks
+    ]);
+
+    await connection.query(`
+      INSERT INTO solo_parent_children (
+        solo_parent_id,
+        child_name,
+        child_age,
+        child_birthday,
+        child_level,
+        child_level_remarks,
+        child_gender,
+        child_relationship,
+        child_relationship_remarks
+      ) VALUES ?
+    `, [values]);
+
+    await connection.commit();
+    res.status(201).json({ message: 'Children records created successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error creating children records:', error);
+    res.status(500).json({ error: 'Failed to create children records' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Update children for a solo parent (replace all)
+app.put('/solo-parent-children/:soloParentId', async (req, res) => {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    const soloParentId = req.params.soloParentId;
+    const children = req.body; // Array of children
+
+    // Delete existing children
+    await connection.query(
+      'DELETE FROM solo_parent_children WHERE solo_parent_id = ?',
+      [soloParentId]
+    );
+
+    // Insert new children if any
+    if (Array.isArray(children) && children.length > 0) {
+      const values = children.map(child => [
+        soloParentId,
+        child.child_name,
+        child.child_age,
+        child.child_birthday,
+        child.child_level,
+        child.child_level_remarks,
+        child.child_gender,
+        child.child_relationship,
+        child.child_relationship_remarks
+      ]);
+
+      await connection.query(`
+        INSERT INTO solo_parent_children (
+          solo_parent_id,
+          child_name,
+          child_age,
+          child_birthday,
+          child_level,
+          child_level_remarks,
+          child_gender,
+          child_relationship,
+          child_relationship_remarks
+        ) VALUES ?
+      `, [values]);
+    }
+
+    await connection.commit();
+    res.json({ message: 'Children records updated successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error updating children records:', error);
+    res.status(500).json({ error: 'Failed to update children records' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Delete a specific child
+app.delete('/solo-parent-children/:soloParentId/:childId', async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'DELETE FROM solo_parent_children WHERE child_id = ? AND solo_parent_id = ?',
+      [req.params.childId, req.params.soloParentId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Child record not found' });
+    }
+
+    res.json({ message: 'Child record deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting child record:', error);
+    res.status(500).json({ error: 'Failed to delete child record' });
+  }
+});
+
+// ==================== SEARCH & STATISTICS ENDPOINTS ====================
+// Search solo parent records
+app.get('/solo-parent-records/search/:query', async (req, res) => {
+  try {
+    const searchQuery = `%${req.params.query}%`;
+    const [rows] = await pool.query(`
+      SELECT * FROM solo_parent_records
+      WHERE is_active = 1
+      AND (
+        full_name LIKE ? OR
+        address LIKE ? OR
+        contact_no LIKE ? OR
+        transaction_number LIKE ?
+      )
+      ORDER BY date_created DESC
+    `, [searchQuery, searchQuery, searchQuery, searchQuery]);
+    
+    res.json(rows);
+  } catch (error) {
+    console.error('Error searching records:', error);
+    res.status(500).json({ error: 'Failed to search records' });
+  }
+});
+
+// Get statistics
+app.get('/solo-parent-statistics', async (req, res) => {
+  try {
+    const [totalRecords] = await pool.query(
+      'SELECT COUNT(*) as count FROM solo_parent_records WHERE is_active = 1'
+    );
+    
+    const [totalChildren] = await pool.query(
+      'SELECT COUNT(*) as count FROM solo_parent_children'
+    );
+    
+    const [recordsThisMonth] = await pool.query(`
+      SELECT COUNT(*) as count FROM solo_parent_records
+      WHERE is_active = 1
+      AND MONTH(date_created) = MONTH(CURRENT_DATE())
+      AND YEAR(date_created) = YEAR(CURRENT_DATE())
+    `);
+
+    res.json({
+      totalRecords: totalRecords[0].count,
+      totalChildren: totalChildren[0].count,
+      recordsThisMonth: recordsThisMonth[0].count
+    });
+  } catch (error) {
+    console.error('Error fetching statistics:', error);
+    res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
 
 
 

@@ -58,6 +58,7 @@ import CertificateOfResidency from './components/RequestForms/CertificateOfResid
 import PermitToTravel from './components/RequestForms/PermitToTravel';
 import CashAssistance from './components/RequestForms/CashAssistance';
 import Cohabitation from './components/RequestForms/Cohabitation';
+import VerifyCohabitation from './components/RequestForms/VerifyCohabitation';
 import FinancialAssistance from './components/RequestForms/FinancialAssistance';
 import BhertCertPositive from './components/RequestForms/BhertCertPositive';
 import Resident from './components/Resident';
@@ -601,6 +602,8 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
+
+            <Route path="/verify-cohabitation" element={<VerifyCohabitation />} />
 
             <Route
               path="/financial-assistance"

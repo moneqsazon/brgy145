@@ -669,49 +669,51 @@ export default function Indigency() {
     try {
       const certificateElement = document.getElementById('certificate-preview');
 
-      // Capture the certificate as an image
+      // --- 1. Remove the zoom (scale) from the preview's parent while exporting ---
+      const parentOfPreview = certificateElement.parentNode;
+      const prevTransform = parentOfPreview.style.transform;
+      const prevTransformOrigin = parentOfPreview.style.transformOrigin;
+      parentOfPreview.style.transform = 'scale(1)';
+      parentOfPreview.style.transformOrigin = 'top center';
+
+      // --- 2. Wait a short moment for layout to apply ---
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // --- 3. Capture crisp certificate at high scale ---
       const canvas = await html2canvas(certificateElement, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      // --- 4. Restore zoom to preview ---
+      parentOfPreview.style.transform = prevTransform;
+      parentOfPreview.style.transformOrigin = prevTransformOrigin;
 
-      // Create PDF (8.5 x 11 inches)
+      // --- 5. Output the PDF at 8.5x11 inches (US Letter) ---
+      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'in',
         format: [8.5, 11],
       });
-
-      // Add the certificate image
       pdf.addImage(imgData, 'PNG', 0, 0, 8.5, 11);
 
       // Add metadata page with verification info
       pdf.addPage();
-
-      // Title
       pdf.setFontSize(18);
       pdf.setFont(undefined, 'bold');
       pdf.text('Certificate Verification Information', 0.5, 0.75);
-
-      // Line separator
       pdf.setLineWidth(0.02);
       pdf.line(0.5, 0.85, 8, 0.85);
-
-      // Certificate details
       pdf.setFontSize(12);
       pdf.setFont(undefined, 'normal');
-
       const createdDate = display.date_created
         ? formatDateTimeDisplay(display.date_created)
         : new Date().toLocaleString();
-
       let yPos = 1.2;
       const lineHeight = 0.25;
-
       const details = [
         `Certificate Type: Certificate of Indigency`,
         `Certificate ID: ${display.indigency_id}`,
@@ -746,10 +748,8 @@ export default function Indigency() {
         ``,
         `QR Code URL: ${window.location.origin}/verify-certificate?id=${display.indigency_id}`,
       ];
-
       details.forEach((line) => {
         if (line.startsWith('---')) {
-          // Using three hyphens as a custom separator
           pdf.setFontSize(10);
           pdf.text(line, 0.5, yPos);
           pdf.setFontSize(12);
@@ -775,8 +775,6 @@ export default function Indigency() {
         }
         yPos += lineHeight;
       });
-
-      // Save the PDF
       const fileName = `Indigency_Certificate_${
         display.indigency_id
       }_${display.full_name.replace(/\s+/g, '_')}.pdf`;
@@ -1407,7 +1405,7 @@ export default function Indigency() {
                       {/* Right side: Contact No. */}
                       <div
                         style={{
-                          width: '400px', // fixed width so it won’t move
+                          width: '400px', // fixed width so it won't move
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',

@@ -451,26 +451,11 @@ export default function BarangayClearance() {
         // Store the certificate data in localStorage
         storeCertificateData(display);
 
-        // Create a URL that points to a verification page
-        // Using window.location.origin to get the current domain
-        const verificationUrl = `${
-          window.location.origin
-        }/verify-certificate?id=${display.barangay_clearance_id || 'draft'}`;
+        // For QR: use LAN_DEV_BASE_URL if set, else window.location.origin
+        const verificationOrigin = window.location.origin;
+        const verificationUrl = `${verificationOrigin}/verify-certificate?id=${display.barangay_clearance_id || 'draft'}`;
 
-         const qrContent = `CERTIFICATE VERIFICATION:
-        𝗧𝗿𝗮𝗻𝘀𝗮𝗰𝘁𝗶𝗼𝗻 𝗡𝗼: ${display.transaction_number || 'N/A'}
-        Name: ${display.full_name}
-        Date Issued: ${
-        display.date_created
-        ? formatDateTimeDisplay(display.date_created)
-        : new Date().toLocaleString()
-        }
-        Document Type: Barangay Clearance
-       
-        Ⓒ RRMS | BARANGAY 145
-        CALOOCAN CITY
-        ALL RIGHTS RESERVED
-        `;
+        const qrContent = `Verification Link: ${verificationUrl}\nTransaction No: ${display.transaction_number || 'N/A'}\nName: ${display.full_name}`;
 
         try {
           const qrUrl = await QRCode.toDataURL(qrContent, {
@@ -669,117 +654,39 @@ export default function BarangayClearance() {
     try {
       const certificateElement = document.getElementById('certificate-preview');
 
-      // Capture the certificate as an image
+      // --- 1. Remove the zoom (scale) from the preview's parent while exporting ---
+      const parentOfPreview = certificateElement.parentNode;
+      const prevTransform = parentOfPreview.style.transform;
+      const prevTransformOrigin = parentOfPreview.style.transformOrigin;
+
+      parentOfPreview.style.transform = 'scale(1)';
+      parentOfPreview.style.transformOrigin = 'top center';
+
+      // --- 2. Wait a short moment for layout to apply ---
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // --- 3. Capture crisp certificate at high scale ---
       const canvas = await html2canvas(certificateElement, {
-        scale: 2,
+        scale: 3, // High scale for better quality
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      // --- 4. Restore zoom to preview ---
+      parentOfPreview.style.transform = prevTransform;
+      parentOfPreview.style.transformOrigin = prevTransformOrigin;
 
-      // Create PDF (8.5 x 11 inches)
+      // --- 5. Output the PDF at 8.5x11 inches (US Letter) ---
+      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'in',
         format: [8.5, 11],
       });
-
-      // Add the certificate image
       pdf.addImage(imgData, 'PNG', 0, 0, 8.5, 11);
 
-      // Add metadata page with verification info
-      pdf.addPage();
-
-      // Title
-      pdf.setFontSize(18);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('Certificate Verification Information', 0.5, 0.75);
-
-      // Line separator
-      pdf.setLineWidth(0.02);
-      pdf.line(0.5, 0.85, 8, 0.85);
-
-      // Certificate details
-      pdf.setFontSize(12);
-      pdf.setFont(undefined, 'normal');
-
-      const createdDate = display.date_created
-        ? formatDateTimeDisplay(display.date_created)
-        : new Date().toLocaleString();
-
-      let yPos = 1.2;
-      const lineHeight = 0.25;
-
-      const details = [
-        `Certificate Type: Barangay Clearance`,
-        `Certificate ID: ${display.barangay_clearance_id}`,
-        `Transaction Number: ${display.transaction_number}`,
-        ``,
-        `Full Name: ${display.full_name}`,
-        `Address: ${display.address}`,
-        `Date of Birth: ${
-          display.dob ? formatDateDisplay(display.dob) : 'N/A'
-        }`,
-        `Age: ${display.age}`,
-        `Provincial Address: ${display.provincial_address || 'N/A'}`,
-        `Contact Number: ${display.contact_no || 'N/A'}`,
-        `Civil Status: ${display.civil_status}`,
-        ``,
-        `Request Reason: ${display.request_reason}`,
-        `Remarks: ${display.remarks}`,
-        ``,
-        `Date Issued: ${formatDateDisplay(display.date_issued)}`,
-        `Date Created (E-Signature Applied): ${createdDate}`,
-        ``,
-        `Issued by: Punong Barangay Arnold Dondonayos`,
-        `Barangay: Barangay 145 Zone 13 Dist. 1, Caloocan City`,
-        ``,
-        `--------------------------------------------------------`,
-        ``,
-        `VERIFICATION NOTICE:`,
-        `This document contains a QR code for verification purposes.`,
-        `Scan the QR code on the certificate to view embedded data.`,
-        `Compare the QR code data with this printed information to`,
-        `verify authenticity and detect any tampering.`,
-        ``,
-        `QR Code URL: ${window.location.origin}/verify-certificate?id=${display.barangay_clearance_id}`,
-      ];
-
-      details.forEach((line) => {
-        if (line.startsWith('---')) {
-          // Using three hyphens as a custom separator
-          pdf.setFontSize(10);
-          pdf.text(line, 0.5, yPos);
-          pdf.setFontSize(12);
-        } else if (
-          line.includes(':') &&
-          !line.startsWith('VERIFICATION') &&
-          !line.startsWith('QR Code URL')
-        ) {
-          const [label, ...valueParts] = line.split(':');
-          const value = valueParts.join(':');
-          pdf.setFont(undefined, 'bold');
-          pdf.text(label + ':', 0.5, yPos);
-          pdf.setFont(undefined, 'normal');
-          pdf.text(value, 0.5 + pdf.getTextWidth(label + ': '), yPos);
-        } else {
-          pdf.setFont(
-            undefined,
-            line.includes('VERIFICATION') || line.includes('QR Code URL')
-              ? 'bold'
-              : 'normal'
-          );
-          pdf.text(line, 0.5, yPos);
-        }
-        yPos += lineHeight;
-      });
-
-      // Save the PDF
-      const fileName = `Barangay_Clearance_${
-        display.barangay_clearance_id
-      }_${display.full_name.replace(/\s+/g, '_')}.pdf`;
+      const fileName = `Barangay_Clearance_${display.barangay_clearance_id}_${display.full_name.replace(/\s+/g, '_')}.pdf`;
       pdf.save(fileName);
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -878,7 +785,6 @@ export default function BarangayClearance() {
   // Function to handle QR code click
   const handleQrCodeClick = () => {
     if (display.barangay_clearance_id) {
-      // Open the verification URL in a new tab
       const verificationUrl = `${window.location.origin}/verify-certificate?id=${display.barangay_clearance_id}`;
       window.open(verificationUrl, '_blank');
     } else {
@@ -1130,7 +1036,7 @@ export default function BarangayClearance() {
                 <img
                   style={{
                     position: 'absolute',
-                    opacity: 0.2,
+                    opacity: 0.1,
                     width: '550px',
                     left: '50%',
                     top: '270px',

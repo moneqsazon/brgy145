@@ -63,7 +63,7 @@ export default function OathJobSeeker() {
   const [transactionSearch, setTransactionSearch] = useState('');
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
 
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomLevel, setZoomLevel] = useState(0.75);
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [residents, setResidents] = useState([]);
@@ -406,24 +406,32 @@ export default function OathJobSeeker() {
     setIsGeneratingPDF(true);
     try {
       const certificateElement = document.getElementById('certificate-preview');
-
+      // --- 1. Remove the zoom (scale) from the preview's parent while exporting ---
+      const parentOfPreview = certificateElement.parentNode;
+      const prevTransform = parentOfPreview.style.transform;
+      const prevTransformOrigin = parentOfPreview.style.transformOrigin;
+      parentOfPreview.style.transform = 'scale(1)';
+      parentOfPreview.style.transformOrigin = 'top center';
+      // --- 2. Wait a short moment for layout to apply ---
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      // --- 3. Capture crisp certificate at high scale ---
       const canvas = await html2canvas(certificateElement, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
       });
-
+      // --- 4. Restore zoom to preview ---
+      parentOfPreview.style.transform = prevTransform;
+      parentOfPreview.style.transformOrigin = prevTransformOrigin;
+      // --- 5. Output the PDF at 8.5x11 inches (US Letter) ---
       const imgData = canvas.toDataURL('image/png');
-
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'in',
         format: [8.5, 11],
       });
-
       pdf.addImage(imgData, 'PNG', 0, 0, 8.5, 11);
-
       // Metadata / verification page
       pdf.addPage();
       pdf.setFontSize(18);
@@ -433,41 +441,30 @@ export default function OathJobSeeker() {
       pdf.line(0.5, 0.85, 8, 0.85);
       pdf.setFontSize(12);
       pdf.setFont(undefined, 'normal');
-
       const display = selectedRecord || formData;
       const createdDate = display.dateCreated
         ? new Date(display.dateCreated).toLocaleString()
         : new Date().toLocaleString();
-
       const details = [
         `Certificate Type: Oath of Undertaking`,
         `Certificate ID: ${display.id || 'Draft'}`,
         `Full Name: ${display.name || ''}`,
         `Address: ${display.address || ''}`,
-        `Birthday: ${
-          display.birthday ? formatDateDisplay(display.birthday) : 'N/A'
-        }`,
+        `Birthday: ${display.birthday ? formatDateDisplay(display.birthday) : 'N/A'}`,
         `Age: ${display.age || ''}`,
         `Date Issued: ${display.dateIssued || ''}`,
         `Date Created (E-Signature Applied): ${createdDate}`,
         ``,
         `VERIFICATION:`,
-        `Scan the QR code on the certificate or visit: ${
-          window.location.origin
-        }/verify-certificate?id=${display.id || 'Draft'}`,
+        `Scan the QR code on the certificate or visit: ${window.location.origin}/verify-certificate?id=${display.id || 'Draft'}`,
       ];
-
       let yPos = 1.2;
       const lineHeight = 0.25;
       details.forEach((line) => {
         pdf.text(line, 0.5, yPos);
         yPos += lineHeight;
       });
-
-      const fileName = `OathUndertaking_${(display.name || 'record').replace(
-        /\s+/g,
-        '_'
-      )}.pdf`;
+      const fileName = `OathUndertaking_${(display.name || 'record').replace(/\s+/g, '_')}.pdf`;
       pdf.save(fileName);
     } catch (err) {
       console.error('generatePDF error', err);
@@ -517,7 +514,7 @@ export default function OathJobSeeker() {
   // ---------- Zoom Controls ----------
   const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 0.1, 2));
   const handleZoomOut = () => setZoomLevel((prev) => Math.max(prev - 0.1, 0.3));
-  const handleResetZoom = () => setZoomLevel(1);
+  const handleResetZoom = () => setZoomLevel(0.75);
 
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -604,18 +601,66 @@ export default function OathJobSeeker() {
           }}
         >
           {/* Zoom Controls */}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <IconButton onClick={handleZoomOut} disabled={zoomLevel <= 0.3}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              alignItems: 'center',
+            }}
+          >
+            <IconButton
+              onClick={handleZoomOut}
+              disabled={zoomLevel <= 0.3}
+              color="primary"
+              sx={{
+                border: '1px solid',
+                borderColor: 'grey.300',
+                '&:hover': {
+                  bgcolor: 'grey.100',
+                },
+              }}
+            >
               <ZoomOutIcon />
             </IconButton>
-            <Typography sx={{ minWidth: '60px', textAlign: 'center' }}>
+            <Typography
+              variant="body2"
+              sx={{
+                minWidth: '60px',
+                textAlign: 'center',
+                fontWeight: 600,
+                color: 'grey.700',
+              }}
+            >
               {Math.round(zoomLevel * 100)}%
             </Typography>
-            <IconButton onClick={handleZoomIn} disabled={zoomLevel >= 2}>
+            <IconButton
+              onClick={handleZoomIn}
+              disabled={zoomLevel >= 2}
+              color="primary"
+              sx={{
+                border: '1px solid',
+                borderColor: 'grey.300',
+                '&:hover': {
+                  bgcolor: 'grey.100',
+                },
+              }}
+            >
               <ZoomInIcon />
             </IconButton>
-            <IconButton onClick={handleResetZoom}>
-              <RestartAltIcon />
+            <IconButton
+              onClick={handleResetZoom}
+              color="primary"
+              size="small"
+              sx={{
+                border: '1px solid',
+                borderColor: 'grey.300',
+                '&:hover': {
+                  bgcolor: 'grey.100',
+                },
+              }}
+              title="Reset Zoom"
+            >
+              <RestartAltIcon fontSize="small" />
             </IconButton>
           </Box>
 

@@ -141,6 +141,32 @@ export default function Cohabitation() {
     localStorage.setItem("certificates", JSON.stringify(existing));
   }
 
+  function getVerifyUrl(cert) {
+    const origin = window.location.origin;
+    const id = (cert && cert.certificate_of_cohabitation_id) || `draft-${(cert && cert.transaction_number) || "no-txn"}`;
+    return `${origin}/verify-cohabitation?id=${encodeURIComponent(id)}`;
+  }
+
+  // Fixed-length underline renderer with optional italics (no underscore placeholder)
+  function UnderlinedValue({ value, width = 180, italic = false, align = "center" }) {
+    const displayText = value && String(value).trim() ? String(value) : "\u00A0"; // non-breaking space to keep line height
+    return (
+      <span
+        style={{
+          display: "inline-block",
+          minWidth: width,
+          borderBottom: "1px solid #000",
+          padding: "0 6px 2px 6px",
+          fontStyle: italic ? "italic" : "normal",
+          textAlign: align,
+          lineHeight: 1.2,
+        }}
+      >
+        {displayText}
+      </span>
+    );
+  }
+
   // Load residents and records
   useEffect(() => {
     loadResidents();
@@ -201,7 +227,8 @@ export default function Cohabitation() {
         setQrCodeUrl("");
         return;
       }
-      const content = `Certificate of Cohabitation\nTransaction: ${display.transaction_number || "N/A"}\nPartners: ${display.full_name1} / ${display.full_name2}\nStarted: ${display.date_started || ""}\nIssued: ${display.date_issued || ""}`;
+      const verifyUrl = getVerifyUrl(display);
+      const content = `${verifyUrl}\nCertificate of Cohabitation\nTransaction: ${display.transaction_number || "N/A"}\nPartners: ${display.full_name1} / ${display.full_name2}\nStarted: ${display.date_started || ""}\nIssued: ${display.date_issued || ""}`;
       try {
         const url = await QRCode.toDataURL(content, { width: 140, margin: 1 });
         setQrCodeUrl(url);
@@ -389,7 +416,7 @@ export default function Cohabitation() {
         `Date Issued: ${formatDateDisplay(display.date_issued)}`,
         `Witnesses: ${display.witness1_name || "-"} , ${display.witness2_name || "-"}`,
         `Created: ${createdDate}`,
-        `Verify URL: ${window.location.origin}/verify-certificate?id=${display.certificate_of_cohabitation_id}`,
+        `Verify URL: ${getVerifyUrl(display)}`,
       ];
       let y = 1.1;
       lines.forEach((ln) => {
@@ -433,15 +460,11 @@ export default function Cohabitation() {
   }, []);
 
   function openVerifyPage() {
-    const id = display.certificate_of_cohabitation_id;
-    if (id) {
-      window.open(`${window.location.origin}/verify-certificate?id=${id}`, "_blank");
-    } else {
-      // save draft to localStorage and open with draft key
+    if (!display.certificate_of_cohabitation_id) {
       const key = `draft-${display.transaction_number || "no-txn"}`;
       storeLocalDraft({ ...display, certificate_of_cohabitation_id: key });
-      window.open(`${window.location.origin}/verify-certificate?id=${encodeURIComponent(key)}`, "_blank");
     }
+    window.open(getVerifyUrl(display), "_blank");
   }
 
   // resident select autofill helpers
@@ -486,7 +509,7 @@ export default function Cohabitation() {
             </Box>
 
             <Box sx={{ display: "flex", gap: 1 }}>
-              <Button variant="outlined" color="primary" onClick={() => { if (display.certificate_of_cohabitation_id) window.open(window.location.origin + `/verify-certificate?id=${display.certificate_of_cohabitation_id}`, "_blank"); }} startIcon={<QrCodeIcon />} disabled={!display.certificate_of_cohabitation_id} sx={{ textTransform: "none", fontWeight: 600, px: 3 }}>View Certificate Details</Button>
+              <Button variant="outlined" color="primary" onClick={() => { if (display.certificate_of_cohabitation_id) window.open(getVerifyUrl(display), "_blank"); }} startIcon={<QrCodeIcon />} disabled={!display.certificate_of_cohabitation_id} sx={{ textTransform: "none", fontWeight: 600, px: 3 }}>View Certificate Details</Button>
               <Button variant="contained" color="success" onClick={generatePDF} disabled={!display.certificate_of_cohabitation_id || isGeneratingPDF} startIcon={<FileTextIcon />} sx={{ textTransform: "none", fontWeight: 600, px: 3 }}>{isGeneratingPDF ? "Generating..." : "Download PDF"}</Button>
             </Box>
           </Box>
@@ -526,42 +549,19 @@ export default function Cohabitation() {
                   TO WHOM IT MAY CONCERN:
 
                   <p style={{ textIndent: "50px" }}>
-                    This is to certify that{" "}
-                    <span style={{ textDecoration: "underline" }}>{display.full_name1 || "____________________"}</span>
-                    , born on{" "}
-                    <span style={{ textDecoration: "underline" }}>{display.dob1 ? new Date(display.dob1).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "__________"}</span>
-                    {" "}and{" "}
-                    <span style={{ textDecoration: "underline" }}>{display.full_name2 || "____________________"}</span>
-                    , born on{" "}
-                    <span style={{ textDecoration: "underline" }}>{display.dob2 ? new Date(display.dob2).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "__________"}</span>
-                    , both currently residing in the same household at{" "}
-                    <span style={{ textDecoration: "underline" }}>{display.address || "____________________"}</span>
-                    , Barangay 145, Bagong Barrio, Caloocan City.
+                    This is to certify that <UnderlinedValue value={display.full_name1} italic width={220} />, born on <UnderlinedValue value={display.dob1 ? new Date(display.dob1).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : ""} width={160} /> and <UnderlinedValue value={display.full_name2} italic width={220} />, born on <UnderlinedValue value={display.dob2 ? new Date(display.dob2).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : ""} width={160} />, are cohabiting at <UnderlinedValue value={display.address} width={380} align="left" />, Barangay 145, Bagong Barrio, Caloocan City.
                   </p>
 
                   <p style={{ textIndent: "50px" }}>
-                    The subject residents have requested to secure this Certificate of Cohabitation.
-                    To the limited knowledge of the Barangay, we hereby certify that the above-mentioned residents
-                    have been together at the aforementioned address since{" "}
-                    <span style={{ textDecoration: "underline" }}>{display.date_started || "__________"}</span>.
+                    Upon the request of the subject residents and to the best knowledge of the Barangay, we certify that they have been living together at the aforementioned address since <UnderlinedValue value={display.date_started} width={100} />.
                   </p>
 
                   <p style={{ textIndent: "50px" }}>
-                    This shall serve as <span style={{ textDecoration: "underline" }}>CERTIFICATE OF COHABITATION</span> and for whatever legal purposes it may serve.
+                    This shall serve as CERTIFICATE OF COHABITATION for whatever legal purpose it may serve.
                   </p>
 
                   <p style={{ textIndent: "50px" }}>
-                    Issued this{" "}
-                    <span style={{ textDecoration: "underline" }}>
-                      {display.date_issued ? (() => {
-                        const date = new Date(display.date_issued);
-                        const day = date.getDate();
-                        const month = date.toLocaleString("default", { month: "short" });
-                        const year = date.getFullYear();
-                        const suffix = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th";
-                        return `${day}${suffix} day of ${month}, ${year}`;
-                      })() : "__________"}
-                    </span> at Barangay 145 office, Bagong Barrio, Caloocan City.
+                    Issued this <UnderlinedValue value={display.date_issued ? (() => { const date = new Date(display.date_issued); const day = date.getDate(); const month = date.toLocaleString("default", { month: "short" }); const year = date.getFullYear(); const suffix = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th"; return `${day}${suffix} day of ${month}, ${year}`; })() : ""} width={260} /> at Barangay 145 office, Bagong Barrio, Caloocan City.
                   </p>
 
                   <div style={{ textAlign: "center", fontWeight: "bold", marginTop: "40px", textDecoration: "underline" }}>
@@ -569,16 +569,16 @@ export default function Cohabitation() {
                   </div>
 
                   <div style={{ marginTop: "40px", display: "flex", justifyContent: "space-between", paddingLeft: "60px", paddingRight: "60px", fontFamily: '"Times New Roman", serif', fontSize: "12pt", fontWeight: "bold" }}>
-                    <div style={{ textDecoration: "underline" }}>{display.witness1_name || "____________________"}</div>
-                    <div style={{ textDecoration: "underline" }}>{display.witness2_name || "____________________"}</div>
+                    <UnderlinedValue value={display.witness1_name} width={220} />
+                    <UnderlinedValue value={display.witness2_name} width={220} />
                   </div>
                 </div>
 
                 {/* signatures */}
-                <div style={{ position: "absolute", top: "720px", left: "80px", width: "250px", textAlign: "left", fontFamily: '"Times New Roman", serif', fontSize: "12pt", fontWeight: "bold" }}>
+                <div style={{ position: "absolute", top: "800px", left: "220px", width: "300px", textAlign: "left", fontFamily: '"Times New Roman", serif', fontWeight: "bold" }}>
                   <div style={{ color: "black", fontFamily: "inherit" }}>Certified Correct:</div> <br /><br />
-                  <div style={{ color: "black", fontFamily: "inherit" }}>Roselyn Anore</div>
-                  <div style={{ color: "black", fontFamily: "inherit" }}>Barangay Secretary</div>
+                  <div style={{ color: "black", fontFamily: "inherit", fontSize: '16pt'}}>Roselyn Anore</div>
+                  <div style={{ color: "black", fontFamily: "inherit", fontStyle: 'italic'}}>Barangay Secretary</div>
                 </div>
 
                 <div style={{ position: "absolute", top: "800px", right: "20px", width: "300px", textAlign: "left", fontFamily: '"Times New Roman", serif', fontWeight: "bold" }}>
@@ -590,9 +590,9 @@ export default function Cohabitation() {
                 {/* QR bottom-right for draft & saved */}
                 {qrCodeUrl && (
                   <div style={{ position: "absolute", bottom: 60, left: 80, textAlign: "center", fontFamily: '"Times New Roman", serif', fontSize: "10pt", fontWeight: "bold" }}>
-                    <div onClick={openVerifyPage} style={{ cursor: "pointer", display: "inline-block" }} title="Click to verify this certificate">
+                    <a href={getVerifyUrl(display)} target="_blank" rel="noreferrer" style={{ cursor: "pointer", display: "inline-block", textDecoration: "none" }} title="Click to verify this certificate">
                       <img src={qrCodeUrl} alt="QR" style={{ width: 120, height: 120, border: "2px solid #000", padding: 5, background: "#fff" }} />
-                    </div>
+                    </a>
                     <div style={{ fontSize: "8pt", color: "#666", marginTop: 6 }}>
                       {display.date_created ? formatDateTimeDisplay(display.date_created) : new Date().toLocaleString()}
                     </div>

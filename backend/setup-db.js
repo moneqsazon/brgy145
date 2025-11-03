@@ -6,7 +6,7 @@ const pool = mysql.createPool({
   host: "localhost",
   user: "root",
   password: "",
-  database: "brg145",
+  database: "brgy145",
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -49,6 +49,35 @@ async function setupDatabase() {
     `);
 
     console.log("Residents table created/verified");
+
+    // Create certificate_of_cohabitation table if it doesn't exist (FKs to residents)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS certificate_of_cohabitation (
+        certificate_of_cohabitation_id int(11) NOT NULL AUTO_INCREMENT,
+        resident1_id int(11) NOT NULL,
+        resident2_id int(11) NOT NULL,
+        full_name1 varchar(255) NOT NULL,
+        dob1 date NOT NULL,
+        full_name2 varchar(255) NOT NULL,
+        dob2 date NOT NULL,
+        address varchar(255) NOT NULL,
+        date_started year(4) NOT NULL,
+        date_issued date NOT NULL,
+        witness1_name varchar(255) DEFAULT NULL,
+        witness2_name varchar(255) DEFAULT NULL,
+        transaction_number varchar(100) NOT NULL,
+        is_active tinyint(1) DEFAULT 1,
+        date_created datetime DEFAULT current_timestamp(),
+        date_updated datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+        PRIMARY KEY (certificate_of_cohabitation_id),
+        KEY resident1_id (resident1_id),
+        KEY resident2_id (resident2_id),
+        CONSTRAINT certificate_of_cohabitation_ibfk_1 FOREIGN KEY (resident1_id) REFERENCES residents (resident_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+        CONSTRAINT certificate_of_cohabitation_ibfk_2 FOREIGN KEY (resident2_id) REFERENCES residents (resident_id) ON DELETE RESTRICT ON UPDATE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+    `);
+
+    console.log("Cohabitation table created/verified");
 
     // Create certificates table if it doesn't exist
     await pool.query(`

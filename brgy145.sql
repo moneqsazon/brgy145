@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 24, 2025 at 08:50 PM
+-- Generation Time: Nov 04, 2025 at 05:49 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -213,7 +213,7 @@ CREATE TABLE `certificate_of_cohabitation` (
 --
 
 INSERT INTO `certificate_of_cohabitation` (`certificate_of_cohabitation_id`, `resident1_id`, `resident2_id`, `full_name1`, `dob1`, `full_name2`, `dob2`, `address`, `date_started`, `date_issued`, `witness1_name`, `witness2_name`, `transaction_number`, `is_active`, `date_created`, `date_updated`) VALUES
-(1, 8, 7, 'Trixie Ann G. Morales', '2002-10-05', 'Hanna N. Sarabia', '2004-06-01', '123 General Tirona St', '2025', '2025-10-24', 'Giselle', 'Ningning', 'COH-251025-919456', 1, '2025-10-25 01:54:45', '2025-10-25 01:54:45');
+(1, 8, 7, 'Trixie Ann G. Morales', '2002-10-05', 'Hanna N. Sarabia', '2004-06-01', '123 General Tirona St', '2025', '2025-10-31', 'HehE', 'Wala Lang', 'COH-251031-936668', 1, '2025-10-31 12:55:01', '2025-10-31 12:55:01');
 
 -- --------------------------------------------------------
 
@@ -447,6 +447,67 @@ INSERT INTO `residents` (`resident_id`, `full_name`, `address`, `provincial_addr
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `solo_parent_children`
+--
+
+CREATE TABLE `solo_parent_children` (
+  `child_id` int(11) NOT NULL,
+  `solo_parent_id` int(11) NOT NULL,
+  `child_name` varchar(255) NOT NULL,
+  `child_age` varchar(10) DEFAULT NULL,
+  `child_birthday` date DEFAULT NULL,
+  `child_level` enum('Nursery','Kindergarten','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12','College 1st Year','College 2nd Year','College 3rd Year','College 4th Year','College 5th Year','Graduate School','Others') DEFAULT NULL,
+  `child_level_remarks` varchar(255) DEFAULT NULL,
+  `child_gender` enum('Male','Female','Others') DEFAULT NULL,
+  `child_relationship` enum('Son','Daughter','Others') DEFAULT NULL,
+  `child_relationship_remarks` varchar(255) DEFAULT NULL,
+  `date_created` timestamp NOT NULL DEFAULT current_timestamp(),
+  `date_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `solo_parent_children`
+--
+
+INSERT INTO `solo_parent_children` (`child_id`, `solo_parent_id`, `child_name`, `child_age`, `child_birthday`, `child_level`, `child_level_remarks`, `child_gender`, `child_relationship`, `child_relationship_remarks`, `date_created`, `date_updated`) VALUES
+(1, 1, 'Hanna Nyek', '21', '2004-01-06', 'College 4th Year', NULL, 'Female', 'Daughter', NULL, '2025-10-31 04:07:14', '2025-10-31 04:07:14');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `solo_parent_records`
+--
+
+CREATE TABLE `solo_parent_records` (
+  `solo_parent_id` int(11) NOT NULL,
+  `resident_id` int(11) NOT NULL,
+  `transactionNum` varchar(255) NOT NULL,
+  `full_name` varchar(255) NOT NULL,
+  `address` text DEFAULT NULL,
+  `dob` date DEFAULT NULL,
+  `age` int(11) DEFAULT NULL,
+  `contact_no` varchar(20) DEFAULT NULL,
+  `residents_since_year` varchar(10) DEFAULT NULL,
+  `unwed_since_year` varchar(10) DEFAULT NULL,
+  `employment_status` enum('Employed','Unemployed','Self-Employed','Business Owner','Freelancer','Contract Worker','Others') DEFAULT NULL,
+  `employment_remarks` varchar(255) DEFAULT NULL,
+  `date_issued` date DEFAULT NULL,
+  `transaction_number` varchar(50) DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `date_created` timestamp NOT NULL DEFAULT current_timestamp(),
+  `date_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `solo_parent_records`
+--
+
+INSERT INTO `solo_parent_records` (`solo_parent_id`, `resident_id`, `transactionNum`, `full_name`, `address`, `dob`, `age`, `contact_no`, `residents_since_year`, `unwed_since_year`, `employment_status`, `employment_remarks`, `date_issued`, `transaction_number`, `is_active`, `date_created`, `date_updated`) VALUES
+(1, 8, 'SP-1761883633940', 'Trixie Ann G. Morales', 'Sampaloc, Manila', '2002-10-05', 23, NULL, '2000', '2015', 'Self-Employed', NULL, '2025-10-31', 'SP-1761883633940', 1, '2025-10-31 04:07:13', '2025-10-31 04:07:13');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -584,6 +645,22 @@ ALTER TABLE `residents`
   ADD PRIMARY KEY (`resident_id`);
 
 --
+-- Indexes for table `solo_parent_children`
+--
+ALTER TABLE `solo_parent_children`
+  ADD PRIMARY KEY (`child_id`),
+  ADD KEY `solo_parent_id` (`solo_parent_id`);
+
+--
+-- Indexes for table `solo_parent_records`
+--
+ALTER TABLE `solo_parent_records`
+  ADD PRIMARY KEY (`solo_parent_id`),
+  ADD UNIQUE KEY `transaction_number` (`transaction_number`),
+  ADD KEY `resident_id` (`resident_id`),
+  ADD KEY `idx_transaction_number` (`transaction_number`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -658,7 +735,7 @@ ALTER TABLE `indigency`
 -- AUTO_INCREMENT for table `oath_job`
 --
 ALTER TABLE `oath_job`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `permit_to_travel`
@@ -683,6 +760,18 @@ ALTER TABLE `request_types`
 --
 ALTER TABLE `residents`
   MODIFY `resident_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `solo_parent_children`
+--
+ALTER TABLE `solo_parent_children`
+  MODIFY `child_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `solo_parent_records`
+--
+ALTER TABLE `solo_parent_records`
+  MODIFY `solo_parent_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -728,8 +817,8 @@ ALTER TABLE `certificate_of_action`
 -- Constraints for table `certificate_of_cohabitation`
 --
 ALTER TABLE `certificate_of_cohabitation`
-  ADD CONSTRAINT `certificate_of_cohabitation_ibfk_1` FOREIGN KEY (`resident1_id`) REFERENCES `residents` (`resident_id`),
-  ADD CONSTRAINT `certificate_of_cohabitation_ibfk_2` FOREIGN KEY (`resident2_id`) REFERENCES `residents` (`resident_id`);
+  ADD CONSTRAINT `certificate_of_cohabitation_ibfk_1` FOREIGN KEY (`resident1_id`) REFERENCES `residents` (`resident_id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `certificate_of_cohabitation_ibfk_2` FOREIGN KEY (`resident2_id`) REFERENCES `residents` (`resident_id`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `certificate_of_residency`
@@ -748,6 +837,18 @@ ALTER TABLE `indigency`
 --
 ALTER TABLE `permit_to_travel`
   ADD CONSTRAINT `permit_to_travel_ibfk_1` FOREIGN KEY (`resident_id`) REFERENCES `residents` (`resident_id`);
+
+--
+-- Constraints for table `solo_parent_children`
+--
+ALTER TABLE `solo_parent_children`
+  ADD CONSTRAINT `solo_parent_children_ibfk_1` FOREIGN KEY (`solo_parent_id`) REFERENCES `solo_parent_records` (`solo_parent_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `solo_parent_records`
+--
+ALTER TABLE `solo_parent_records`
+  ADD CONSTRAINT `solo_parent_records_ibfk_1` FOREIGN KEY (`resident_id`) REFERENCES `residents` (`resident_id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

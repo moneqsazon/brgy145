@@ -25,6 +25,16 @@ import {
   Tab,
   createTheme,
   ThemeProvider,
+  Divider,
+  Grid,
+  Fab,
+  AppBar,
+  Toolbar,
+  Chip,
+  Avatar,
+  useMediaQuery,
+  Badge,
+  Tooltip,
 } from "@mui/material";
 
 import {
@@ -41,21 +51,133 @@ import {
   ZoomIn as ZoomInIcon,
   ZoomOut as ZoomOutIcon,
   RestartAlt as ResetIcon,
+  Folder as FolderIcon,
+  History as HistoryIcon,
+  Receipt as ReceiptIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+  Dashboard as DashboardIcon,
+  Article as ArticleIcon,
 } from "@mui/icons-material";
 
 const theme = createTheme({
   palette: {
     primary: { main: "#41644A", light: "#A0B2A6", dark: "#0D4715" },
+    secondary: { main: "#E9762B" },
     success: { main: "#41644A" },
     background: { default: "#F1F0E9", paper: "#FFFFFF" },
-    text: { primary: "#0D4715" },
+    text: { primary: "#000000", secondary: "#41644A" },
+    error: { main: "#E9762B" },
   },
   components: {
     MuiButton: {
       styleOverrides: {
-        root: { textTransform: "none", fontWeight: 600, borderRadius: 8 },
+        root: { 
+          textTransform: "none", 
+          fontWeight: 600, 
+          borderRadius: 8,
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          "&:hover": {
+            boxShadow: "0 4px 8px rgba(0,0,0,0.15)",
+          }
+        },
+        containedPrimary: {
+          background: "linear-gradient(45deg, #41644A 30%, #527D60 90%)",
+        },
+        containedSecondary: {
+          background: "linear-gradient(45deg, #E9762B 30%, #F4944D 90%)",
+        }
       },
     },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            transform: "translateY(-2px)",
+            boxShadow: "0 8px 16px rgba(0,0,0,0.12)",
+          }
+        }
+      }
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: "none"
+        }
+      }
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+          fontWeight: 600,
+          minHeight: 48,
+          color: "#000000",
+          "&.Mui-selected": {
+            color: "#41644A"
+          }
+        }
+      }
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          color: "#000000",
+        }
+      }
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          color: "#000000",
+          "&.Mui-focused": {
+            color: "#41644A"
+          }
+        }
+      }
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          color: "#000000"
+        }
+      }
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#000000"
+          },
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#41644A"
+          },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#41644A"
+          }
+        }
+      }
+    },
+    MuiAutocomplete: {
+      styleOverrides: {
+        root: {
+          "& .MuiOutlinedInput-root": {
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: "#000000"
+            },
+            "&:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: "#41644A"
+            },
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: "#41644A"
+            }
+          }
+        }
+      }
+    }
   },
 });
 
@@ -73,6 +195,8 @@ export default function CertificateOfAction() {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [zoomLevel, setZoomLevel] = useState(0.75);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [formData, setFormData] = useState({
     certificate_of_action_id: "",
@@ -447,230 +571,544 @@ export default function CertificateOfAction() {
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-        {/* LEFT: Certificate preview */}
-        <Box sx={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", bgcolor: "background.default" }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 1, p: 2, bgcolor: "background.paper", borderBottom: 1, borderColor: "grey.200" }}>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <IconButton onClick={handleZoomOut} color="primary" sx={{ border: "1px solid", borderColor: "grey.300" }}><ZoomOutIcon /></IconButton>
-              <Typography variant="body2" sx={{ minWidth: 60, textAlign: "center", fontWeight: 600 }}>{Math.round(zoomLevel * 100)}%</Typography>
-              <IconButton onClick={handleZoomIn} color="primary" sx={{ border: "1px solid", borderColor: "grey.300" }}><ZoomInIcon /></IconButton>
-              <IconButton onClick={handleResetZoom} color="primary" size="small" sx={{ border: "1px solid", borderColor: "grey.300" }}><ResetIcon fontSize="small" /></IconButton>
+      <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden", bgcolor: "background.default" }}>
+        {/* TOP HEADER */}
+        <Paper elevation={2} sx={{ zIndex: 10, borderRadius: 0 }}>
+          <Box sx={{ 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "space-between",
+            p: 2,
+            bgcolor: "primary.main",
+            color: "white"
+          }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Avatar src={Logo145} sx={{ width: 48, height: 48 }} />
+              <Box>
+                <Typography variant="h5" fontWeight="bold">
+                  Certificate of Action 
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Manage all records of the Certificate of Action
+                </Typography>
+              </Box>
             </Box>
-
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Button variant="outlined" color="primary" onClick={() => { if (display.certificate_of_action_id) window.open(window.location.origin + `/verify-certificate?id=${display.certificate_of_action_id}`, "_blank"); }} startIcon={<QrCodeIcon />} disabled={!display.certificate_of_action_id} sx={{ textTransform: "none", fontWeight: 600, px: 3 }}>View Certificate Details</Button>
-              <Button variant="contained" color="success" onClick={generatePDF} disabled={!display.certificate_of_action_id || isGeneratingPDF} startIcon={<FileTextIcon />} sx={{ textTransform: "none", fontWeight: 600, px: 3 }}>{isGeneratingPDF ? "Generating..." : "Download PDF"}</Button>
+            
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Badge badgeContent={records.length} color="secondary">
+                <Chip 
+                  icon={<FolderIcon />}
+                  label="Total Records" 
+                  sx={{ 
+                    bgcolor: "rgba(255,255,255,0.2)", 
+                    color: "white",
+                    fontWeight: 600
+                  }} 
+                />
+              </Badge>
+              
+              <Button 
+                variant="contained" 
+                color="secondary" 
+                startIcon={<AddIcon />} 
+                onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }}
+                sx={{ borderRadius: 20, px: 3 }}
+              >
+                New Certificate
+              </Button>
             </Box>
           </Box>
 
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-start", flex: 1, overflow: "auto", padding: "20px 0" }}>
-            <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: "top center" }}>
-              {/* certificate preview container - DO NOT CHANGE LAYOUT; values inserted for live-update */}
-              <div id="certificate-preview" style={{ ...certificateStyles.page }}>
-                {/* Logos */}
-                <img src={CaloocanLogo} alt="City Logo" style={{ width: "100px", position: "absolute", top: "20px", left: "20px" }} />
-                <img src={Logo145} alt="Barangay Logo" style={{ width: "120px", position: "absolute", top: "20px", right: "20px" }} />
-                <img src={Logo145} alt="Watermark" style={certificateStyles.watermarkImg} />
+          {/* NAVIGATION TABS */}
+          <Box sx={{ bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}>
+            <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+              <Tabs 
+                value={activeTab} 
+                onChange={(e, nv) => setActiveTab(nv)} 
+                variant="fullWidth"
+                sx={{ 
+                  "& .MuiTabs-indicator": { height: 3, borderRadius: "3px 3px 0 0" },
+                  minHeight: 48
+                }}
+              >
+                <Tab 
+                  icon={<ArticleIcon />} 
+                  label="Form" 
+                  value="form"
+                  iconPosition="start"
+                />
+                <Tab 
+                  icon={<FolderIcon />} 
+                  label={`Records (${records.length})`} 
+                  value="records"
+                  iconPosition="start"
+                />
+                <Tab 
+                  icon={<ReceiptIcon />} 
+                  label="Transaction" 
+                  value="transaction"
+                  iconPosition="start"
+                />
+              </Tabs>
+            </Box>
+          </Box>
+        </Paper>
 
-                {/* Header texts (unchanged) */}
-                <div style={{ fontFamily: '"Lucida Calligraphy", cursive', fontSize: "20px", textAlign: "center" }}>Republic of the Philippines</div>
-                <div style={{ fontFamily: "Arial, sans-serif", fontSize: "20px", textAlign: "center" }}>CITY OF CALOOCAN</div>
-                <div style={{ fontFamily: "Arial Black, Gadget, sans-serif", fontSize: "15px", textAlign: "center" }}>
-                  BARANGAY 145 ZONES 13 DIST. 1 <br />
-                  Tel. No. 8711-7134
-                </div>
-                <div style={{ fontFamily: "Arial Black, Gadget, sans-serif", fontSize: "20px", textAlign: "center", marginBottom: "20px" }}>OFFICE OF THE BARANGAY CHAIRMAN</div>
-                <div style={certificateStyles.lupon}>OFFICE OF THE LUPONG TAGAPAMAYAPA</div>
-
-                {/* date (live) */}
-                <div style={certificateStyles.date}>
-                  {/* live update of date_issued (if user types) otherwise default in form */}
-                  {display.date_issued ? formatDateDisplay(display.date_issued) : ""}
-                </div>
-
-                {/* case info (live) */}
-                <div style={certificateStyles.caseInfo}>
-                  {display.barangay_case_no ? `BARANGAY CASE NO. ${display.barangay_case_no}` : "BARANGAY CASE NO. ________"} <br />
-                  FOR: {display.request_reason ? display.request_reason : "________________"}
-                </div>
-
-                {/* Parties - live update complainant/respondent */}
-                <div style={certificateStyles.content}>
-                  <p>
-                    <b>{display.complainant_name || "________________"}</b>
-                    <br />
-                    <b>COMPLAINANT</b>
-                  </p>
-                  <p style={{ textAlign: "left" }}>-against-</p>
-                  <p>
-                    <b>{display.respondent_name || "________________"}</b>
-                    <br />
-                    <b>RESPONDENT</b>
-                  </p>
-                </div>
-
-                {/* Title (unchanged) */}
-                <div style={{ fontFamily: "Calibri", fontSize: "20px", textAlign: "center", fontStyle: "italic" }}>CERTIFICATION TO FILE ACTION</div>
-
-                {/* Body: keep structure but use live dates */}
-                <div style={certificateStyles.content}>
-                  <b style={{ paddingBottom: "150px" }}>This is to certify that:</b>
-                  <ol style={{ paddingLeft: "7.5em", paddingBottom: "30px" }}>
-                    <li style={{ marginBottom: "15px" }}>
-                      <b>This complaint was filed on {display.filed_date ? formatDateDisplay(display.filed_date) : "__________"}.</b>
-                    </li>
-                    <li style={{ marginBottom: "15px" }}>
-                      <b>
-                        There has no personal confrontation between the parties before the Punong Barangay because the respondent was absent and that mediation failed.
-                      </b>
-                    </li>
-                    <li style={{ marginBottom: "15px" }}>
-                      <b>
-                        The Pangkat Tagapagkasundo was constituted but there has been no personal confrontation before the Pangkat likewise did not result into a settlement because the respondent was absent.
-                      </b>
-                    </li>
-                    <li>
-                      <b>
-                        Therefore, the corresponding complaint for the dispute may now be filed in the court/government office.
-                      </b>
-                    </li>
-                  </ol>
-                </div>
-
-                <div style={certificateStyles.content}>
-                  <b>Issued this {display.date_issued ? (() => {
-                    const date = new Date(display.date_issued);
-                    const day = date.getDate();
-                    const month = date.toLocaleString("default", { month: "long" });
-                    const year = date.getFullYear();
-                    const suffix = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th";
-                    return `${day}${suffix} day of ${month}, ${year}`;
-                  })() : "__________"}, at Barangay 145 office.</b>
-                </div>
-
-                {/* Bottom Section (signatures) unchanged but live not necessary */}
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "40px", width: "100%", fontStyle: "italic" }}>
-                  <div>
-                    <div style={{ fontFamily: "Calibri, sans-serif", fontSize: "15px", textAlign: "center" }}>
-                      <b>Prepared by:</b> <br /><br /><br />
-                      <b style={{ fontSize: "20px" }}>Rosalina P. Anore</b>
-                      <br />
-                      <b style={{ display: "block", textAlign: "center", fontSize: "15px" }}>Secretary</b>
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: "right", fontFamily: "Calibri, sans-serif", fontSize: "22px" }}>
-                    <br /><br /><br /><br /><br /><br />
-                    <b>ARNOLD L. DONDONAYOS</b>
-                    <br />
-                    <b>Barangay 145 Chairperson</b>
-                  </div>
-                </div>
-
-                {/* QR: bottom-right corner (visible for drafts too) */}
-                {qrCodeUrl && (
-                  <div style={{ position: "absolute", bottom: 60, left: 60, textAlign: "center", fontFamily: '"Times New Roman", serif', fontSize: "10pt", fontWeight: "bold" }}>
-                    <div onClick={openVerifyPage} style={{ cursor: "pointer", display: "inline-block" }} title="Click to verify this certificate">
-                      <img src={qrCodeUrl} alt="QR" style={{ width: 120, height: 120, border: "2px solid #000", padding: 5, background: "#fff" }} />
-                    </div>
-                    <div style={{ fontSize: "8pt", color: "#666", marginTop: 6 }}>
-                      {display.date_created ? formatDateTimeDisplay(display.date_created) : new Date().toLocaleString()}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <style>{`@media print { body * { visibility: hidden; } #certificate-preview, #certificate-preview * { visibility: visible; } #certificate-preview { position: absolute; left: 0; top: 0; width: 8.5in; height: 11in; transform: none !important; } @page { size: portrait; margin: 0; } #certificate-preview * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }`}</style>
-        </Box>
-
-        {/* RIGHT: CRUD panel */}
-        <Container maxWidth="sm" disableGutters sx={{ height: "100vh" }}>
-          <Paper sx={{ bgcolor: "grey.50", borderLeft: 1, borderColor: "grey.300", display: "flex", flexDirection: "column" }}>
-            <Paper elevation={0} sx={{ position: "sticky", paddingTop: 5, zIndex: 10, bgcolor: "rgba(255,255,255,0.9)", backdropFilter: "blur(8px)", borderBottom: 1, borderColor: "grey.300" }}>
-              <Box sx={{ px: 2, py: 1.5, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>Certificate of Action</Typography>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <Button variant="outlined" size="small" startIcon={<PrintIcon />} onClick={handlePrint} disabled={!display.certificate_of_action_id} sx={{ color: "primary.main", borderColor: "primary.main" }}>Print</Button>
-                  <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }} color="primary">New</Button>
+        {/* MAIN CONTENT AREA */}
+        <Box sx={{ flex: 1, display: "flex", overflow: "hidden" }}>
+          {/* LEFT: Certificate preview */}
+          <Box sx={{ 
+            flex: 1, 
+            overflow: "auto", 
+            display: "flex", 
+            flexDirection: "column", 
+            bgcolor: "background.default",
+            p: 2,
+            [theme.breakpoints.down('lg')]: { display: activeTab === "form" ? 'none' : 'flex' }
+          }}>
+            {/* ZOOM CONTROLS */}
+            <Paper elevation={1} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+              <Box sx={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 1
+              }}>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  <Tooltip title="Zoom Out">
+                    <IconButton onClick={handleZoomOut} color="primary" size="small">
+                      <ZoomOutIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="body2" sx={{ 
+                    minWidth: 60, 
+                    textAlign: "center", 
+                    fontWeight: 600,
+                    px: 1,
+                    py: 0.5,
+                    bgcolor: "background.paper",
+                    borderRadius: 1,
+                    color: "#000000"
+                  }}>
+                    {Math.round(zoomLevel * 100)}%
+                  </Typography>
+                  <Tooltip title="Zoom In">
+                    <IconButton onClick={handleZoomIn} color="primary" size="small">
+                      <ZoomInIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Reset Zoom">
+                    <IconButton onClick={handleResetZoom} color="primary" size="small">
+                      <ResetIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Box>
-              </Box>
 
-              <Box sx={{ px: 1, pb: 1 }}>
-                <Paper sx={{ p: 0.5, bgcolor: "background.default", borderRadius: 2 }}>
-                  <Tabs value={activeTab} onChange={(e, nv) => setActiveTab(nv)} aria-label="coa tabs" variant="fullWidth" sx={{ minHeight: "unset", "& .MuiTabs-flexContainer": { gap: 0.5 } }}>
-                    <Tab value="form" label="Form" sx={{ py: 1 }} />
-                    <Tab value="records" label={`Records (${records.length})`} sx={{ py: 1 }} />
-                    <Tab value="transaction" label="Transaction" sx={{ py: 1 }} />
-                  </Tabs>
-                </Paper>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Tooltip title="Verify Certificate">
+                    <Button 
+                      variant="outlined" 
+                      color="primary" 
+                      onClick={() => { 
+                        if (display.certificate_of_action_id) 
+                          window.open(window.location.origin + `/verify-certificate?id=${display.certificate_of_action_id}`, "_blank"); 
+                      }} 
+                      startIcon={<QrCodeIcon />} 
+                      disabled={!display.certificate_of_action_id}
+                      size="small"
+                    >
+                      Verify
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Download PDF">
+                    <Button 
+                      variant="contained" 
+                      color="secondary" 
+                      onClick={generatePDF} 
+                      disabled={!display.certificate_of_action_id || isGeneratingPDF} 
+                      startIcon={<FileTextIcon />}
+                      size="small"
+                    >
+                      {isGeneratingPDF ? "Generating..." : "Download"}
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Print">
+                    <Button 
+                      variant="outlined" 
+                      onClick={handlePrint} 
+                      disabled={!display.certificate_of_action_id}
+                      startIcon={<PrintIcon />}
+                      size="small"
+                    >
+                      Print
+                    </Button>
+                  </Tooltip>
+                </Box>
               </Box>
             </Paper>
 
+            {/* CERTIFICATE PREVIEW */}
+            <Box sx={{ 
+              display: "flex", 
+              justifyContent: "center", 
+              alignItems: "flex-start", 
+              flex: 1, 
+              overflow: "auto",
+              p: 1
+            }}>
+              <Box sx={{ transform: `scale(${zoomLevel})`, transformOrigin: "top center" }}>
+                <Box id="certificate-preview" sx={{ ...certificateStyles.page }}>
+                  {/* Logos */}
+                  <img src={CaloocanLogo} alt="City Logo" style={{ width: "100px", position: "absolute", top: "20px", left: "20px" }} />
+                  <img src={Logo145} alt="Barangay Logo" style={{ width: "120px", position: "absolute", top: "20px", right: "20px" }} />
+                  <img src={Logo145} alt="Watermark" style={certificateStyles.watermarkImg} />
+
+                  {/* Header texts */}
+                  <div style={{ fontFamily: '"Lucida Calligraphy", cursive', fontSize: "20px", textAlign: "center" }}>Republic of the Philippines</div>
+                  <div style={{ fontFamily: "Arial, sans-serif", fontSize: "20px", textAlign: "center" }}>CITY OF CALOOCAN</div>
+                  <div style={{ fontFamily: "Arial Black, Gadget, sans-serif", fontSize: "15px", textAlign: "center" }}>
+                    BARANGAY 145 ZONES 13 DIST. 1 <br />
+                    Tel. No. 8711-7134
+                  </div>
+                  <div style={{ fontFamily: "Arial Black, Gadget, sans-serif", fontSize: "20px", textAlign: "center", marginBottom: "20px" }}>OFFICE OF THE BARANGAY CHAIRMAN</div>
+                  <div style={certificateStyles.lupon}>OFFICE OF THE LUPONG TAGAPAMAYAPA</div>
+
+                  {/* date */}
+                  <div style={certificateStyles.date}>
+                    {display.date_issued ? formatDateDisplay(display.date_issued) : ""}
+                  </div>
+
+                  {/* case info */}
+                  <div style={certificateStyles.caseInfo}>
+                    {display.barangay_case_no ? `BARANGAY CASE NO. ${display.barangay_case_no}` : "BARANGAY CASE NO. ________"} <br />
+                    FOR: {display.request_reason ? display.request_reason : "________________"}
+                  </div>
+
+                  {/* Parties */}
+                  <div style={certificateStyles.content}>
+                    <p>
+                      <b>{display.complainant_name || "________________"}</b>
+                      <br />
+                      <b>COMPLAINANT</b>
+                    </p>
+                    <p style={{ textAlign: "left" }}>-against-</p>
+                    <p>
+                      <b>{display.respondent_name || "________________"}</b>
+                      <br />
+                      <b>RESPONDENT</b>
+                    </p>
+                  </div>
+
+                  {/* Title */}
+                  <div style={{ fontFamily: "Calibri", fontSize: "20px", textAlign: "center", fontStyle: "italic" }}>CERTIFICATION TO FILE ACTION</div>
+
+                  {/* Body */}
+                  <div style={certificateStyles.content}>
+                    <b style={{ paddingBottom: "150px" }}>This is to certify that:</b>
+                    <ol style={{ paddingLeft: "7.5em", paddingBottom: "30px" }}>
+                      <li style={{ marginBottom: "15px" }}>
+                        <b>This complaint was filed on {display.filed_date ? formatDateDisplay(display.filed_date) : "__________"}.</b>
+                      </li>
+                      <li style={{ marginBottom: "15px" }}>
+                        <b>
+                          There has no personal confrontation between the parties before the Punong Barangay because the respondent was absent and that mediation failed.
+                        </b>
+                      </li>
+                      <li style={{ marginBottom: "15px" }}>
+                        <b>
+                          The Pangkat Tagapagkasundo was constituted but there has been no personal confrontation before the Pangkat likewise did not result into a settlement because the respondent was absent.
+                        </b>
+                      </li>
+                      <li>
+                        <b>
+                          Therefore, the corresponding complaint for the dispute may now be filed in the court/government office.
+                        </b>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div style={certificateStyles.content}>
+                    <b>Issued this {display.date_issued ? (() => {
+                      const date = new Date(display.date_issued);
+                      const day = date.getDate();
+                      const month = date.toLocaleString("default", { month: "long" });
+                      const year = date.getFullYear();
+                      const suffix = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th";
+                      return `${day}${suffix} day of ${month}, ${year}`;
+                    })() : "__________"}, at Barangay 145 office.</b>
+                  </div>
+
+                  {/* Signatures */}
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: "40px", width: "100%", fontStyle: "italic" }}>
+                    <div>
+                      <div style={{ fontFamily: "Calibri, sans-serif", fontSize: "15px", textAlign: "center" }}>
+                        <b>Prepared by:</b> <br /><br /><br />
+                        <b style={{ fontSize: "20px" }}>Rosalina P. Anore</b>
+                        <br />
+                        <b style={{ display: "block", textAlign: "center", fontSize: "15px" }}>Secretary</b>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: "right", fontFamily: "Calibri, sans-serif", fontSize: "22px" }}>
+                      <br /><br /><br /><br /><br /><br />
+                      <b>ARNOLD L. DONDONAYOS</b>
+                      <br />
+                      <b>Barangay 145 Chairperson</b>
+                    </div>
+                  </div>
+
+                  {/* QR Code */}
+                  {qrCodeUrl && (
+                    <div style={{ position: "absolute", bottom: 60, left: 60, textAlign: "center", fontFamily: '"Times New Roman", serif', fontSize: "10pt", fontWeight: "bold" }}>
+                      <div onClick={openVerifyPage} style={{ cursor: "pointer", display: "inline-block" }} title="Click to verify this certificate">
+                        <img src={qrCodeUrl} alt="QR" style={{ width: 120, height: 120, border: "2px solid #000", padding: 5, background: "#fff" }} />
+                      </div>
+                      <div style={{ fontSize: "8pt", color: "#666", marginTop: 6 }}>
+                        {display.date_created ? formatDateTimeDisplay(display.date_created) : new Date().toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* RIGHT: FORM/RECORDS PANEL */}
+          <Box sx={{ 
+            width: { xs: '100%', md: '50%', lg: '40%' }, 
+            bgcolor: "background.paper", 
+            borderLeft: { xs: 0, md: 1 }, 
+            borderColor: "divider",
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
             {/* FORM */}
             {activeTab === "form" && (
-              <Box sx={{ flex: 1, p: 2, overflow: "auto" }}>
-                <Card sx={{ borderRadius: 3, boxShadow: 1 }}>
-                  <CardHeader title={<Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 600, color: "grey.800" }}>{editingId ? "Edit Record" : "New Certificate of Action"}</Typography>} subheader={selectedRecord && !editingId && (<Typography variant="caption" sx={{ color: "grey.500" }}>Viewing: {selectedRecord.complainant_name}</Typography>)} sx={{ borderBottom: 1, borderColor: "grey.200" }} />
-                  <CardContent>
-                    <Stack spacing={2}>
-                      <Autocomplete
-                        options={residents}
-                        getOptionLabel={(opt) => opt.full_name || ""}
-                        value={residents.find((r) => r.resident_id === formData.resident_id) || null}
-                        onChange={(e, nv) => { onResidentSelect(nv); }}
-                        renderInput={(params) => <TextField {...params} label="Complainant Name" variant="outlined" size="small" fullWidth />}
-                      />
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+                    <ArticleIcon color="primary" />
+                    {editingId ? "Edit Certificate" : "New Certificate of Action"}
+                  </Typography>
+                  {selectedRecord && !editingId && (
+                    <Typography variant="body2" color="text.secondary">
+                      Viewing: {selectedRecord.complainant_name}
+                    </Typography>
+                  )}
+                </Paper>
 
-                
-                      <TextField label="Respondent Name *" variant="outlined" size="small" fullWidth value={formData.respondent_name} onChange={(e) => setFormData({ ...formData, respondent_name: e.target.value })} />
+                <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
+                  <Stack spacing={3}>
+                    <Autocomplete
+                      options={residents}
+                      getOptionLabel={(opt) => opt.full_name || ""}
+                      value={residents.find((r) => r.resident_id === formData.resident_id) || null}
+                      onChange={(e, nv) => { onResidentSelect(nv); }}
+                      renderInput={(params) => (
+                        <TextField 
+                          {...params} 
+                          label="Complainant Name" 
+                          variant="outlined" 
+                          fullWidth 
+                          size="small"
+                          required
+                        />
+                      )}
+                    />
 
-                      <TextField label="Barangay Case No. *" variant="outlined" size="small" fullWidth value={formData.barangay_case_no} onChange={(e) => setFormData({ ...formData, barangay_case_no: e.target.value })} />
+                    <TextField 
+                      label="Respondent Name" 
+                      variant="outlined" 
+                      fullWidth 
+                      size="small"
+                      value={formData.respondent_name} 
+                      onChange={(e) => setFormData({ ...formData, respondent_name: e.target.value })} 
+                      required
+                    />
 
-                      <TextField label="Request Reason *" variant="outlined" size="small" fullWidth multiline rows={2} value={formData.request_reason} onChange={(e) => setFormData({ ...formData, request_reason: e.target.value })} placeholder="Reason for certification" />
+                    <TextField 
+                      label="Barangay Case No." 
+                      variant="outlined" 
+                      fullWidth 
+                      size="small"
+                      value={formData.barangay_case_no} 
+                      onChange={(e) => setFormData({ ...formData, barangay_case_no: e.target.value })} 
+                      required
+                    />
 
-                      <TextField label="Filed Date *" type="date" variant="outlined" size="small" fullWidth InputLabelProps={{ shrink: true }} value={formData.filed_date} onChange={(e) => setFormData({ ...formData, filed_date: e.target.value })} />
+                    <TextField 
+                      label="Request Reason" 
+                      variant="outlined" 
+                      fullWidth 
+                      size="small"
+                      multiline 
+                      rows={3}
+                      value={formData.request_reason} 
+                      onChange={(e) => setFormData({ ...formData, request_reason: e.target.value })} 
+                      placeholder="Reason for certification"
+                      required
+                    />
 
-                      <TextField label="Date Issued *" type="date" variant="outlined" size="small" fullWidth InputLabelProps={{ shrink: true }} value={formData.date_issued} onChange={(e) => setFormData({ ...formData, date_issued: e.target.value })} helperText={formData.date_issued ? (() => { const date = new Date(formData.date_issued); const day = date.getDate(); const month = date.toLocaleString("default", { month: "short" }); const year = date.getFullYear(); const suffix = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th"; return `Formatted: ${day}${suffix} day of ${month}, ${year}`; })() : "Select the date"} />
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField 
+                          label="Filed Date" 
+                          type="date" 
+                          variant="outlined" 
+                          fullWidth 
+                          size="small"
+                          InputLabelProps={{ shrink: true }} 
+                          value={formData.filed_date} 
+                          onChange={(e) => setFormData({ ...formData, filed_date: e.target.value })} 
+                          required
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField 
+                          label="Date Issued" 
+                          type="date" 
+                          variant="outlined" 
+                          fullWidth 
+                          size="small"
+                          InputLabelProps={{ shrink: true }} 
+                          value={formData.date_issued} 
+                          onChange={(e) => setFormData({ ...formData, date_issued: e.target.value })} 
+                          helperText={formData.date_issued ? (() => { 
+                            const date = new Date(formData.date_issued); 
+                            const day = date.getDate(); 
+                            const month = date.toLocaleString("default", { month: "short" }); 
+                            const year = date.getFullYear(); 
+                            const suffix = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th"; 
+                            return `Formatted: ${day}${suffix} day of ${month}, ${year}`; 
+                          })() : "Select the date"}
+                          required
+                        />
+                      </Grid>
+                    </Grid>
 
-                      <Box sx={{ display: "flex", gap: 1, pt: 1 }}>
-                        <Button onClick={handleSubmit} variant="contained" startIcon={<SaveIcon />} fullWidth color="primary" sx={{ py: 1.25 }}>{editingId ? "Update" : "Save"}</Button>
-                        {(editingId || isFormOpen) && (<Button onClick={resetForm} variant="outlined" startIcon={<CloseIcon />} color="primary" sx={{ py: 1.25 }}>Cancel</Button>)}
-                      </Box>
-                    </Stack>
-                  </CardContent>
-                </Card>
+                    <Box sx={{ display: "flex", gap: 2, pt: 2 }}>
+                      <Button 
+                        onClick={handleSubmit} 
+                        variant="contained" 
+                        startIcon={<SaveIcon />} 
+                        fullWidth 
+                        color="primary"
+                        size="large"
+                      >
+                        {editingId ? "Update" : "Save"}
+                      </Button>
+                      {(editingId || isFormOpen) && (
+                        <Button 
+                          onClick={resetForm} 
+                          variant="outlined" 
+                          startIcon={<CloseIcon />} 
+                          color="primary"
+                          size="large"
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                    </Box>
+                  </Stack>
+                </Box>
               </Box>
             )}
 
             {/* RECORDS */}
             {activeTab === "records" && (
-              <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                <Box sx={{ p: 1.5 }}>
-                  <TextField fullWidth size="small" placeholder="Search records..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon sx={{ color: "grey.400", fontSize: 20 }} /></InputAdornment>) }} />
-                </Box>
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                    <FolderIcon color="primary" />
+                    Certificate Records
+                  </Typography>
+                  <TextField 
+                    fullWidth 
+                    size="small" 
+                    placeholder="Search by name, case number..." 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                    InputProps={{ 
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      ) 
+                    }} 
+                  />
+                </Paper>
 
-                <Box sx={{ flex: 1, overflow: "auto", px: 1.5, pb: 1.5 }}>
+                <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
                   {filteredRecords.length === 0 ? (
-                    <Paper sx={{ p: 3, textAlign: "center", color: "grey.500" }}><Typography variant="body2">{searchTerm ? "No records found" : "No records yet"}</Typography></Paper>
+                    <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
+                      <FolderIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                      <Typography variant="h6" gutterBottom>
+                        {searchTerm ? "No records found" : "No records yet"}
+                      </Typography>
+                      <Typography variant="body2">
+                        {searchTerm ? "Try a different search term" : "Create your first certificate to get started"}
+                      </Typography>
+                    </Paper>
                   ) : (
-                    <Stack spacing={1}>
+                    <Stack spacing={2}>
                       {filteredRecords.map((record) => (
-                        <Card key={record.certificate_of_action_id} sx={{ boxShadow: 1, '&:hover': { boxShadow: 2 }, transition: "box-shadow 0.2s", borderLeft: "4px solid", borderColor: "primary.main" }}>
-                          <CardContent sx={{ p: 1.5 }}>
+                        <Card key={record.certificate_of_action_id} sx={{ 
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          borderLeft: 4,
+                          borderColor: "primary.main",
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
                             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                               <Box sx={{ flex: 1 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{record.complainant_name}</Typography>
-                                <Typography variant="caption" sx={{ color: "grey.600", display: "block" }}>{record.respondent_name}</Typography>
-                                <Typography variant="caption" sx={{ color: "grey.700", display: "block", mt: 0.5 }}>{record.barangay_case_no}</Typography>
-                                <Typography variant="caption" sx={{ color: "grey.400", display: "block" }}>Filed: {formatDateDisplay(record.filed_date)}</Typography>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5, color: "#000000" }}>
+                                  {record.complainant_name}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                  vs. {record.respondent_name}
+                                </Typography>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                                  <Chip 
+                                    label={record.barangay_case_no} 
+                                    size="small" 
+                                    color="primary" 
+                                    variant="outlined" 
+                                  />
+                                  <Typography variant="caption" color="text.secondary">
+                                    Filed: {formatDateDisplay(record.filed_date)}
+                                  </Typography>
+                                </Box>
                               </Box>
-                              <Box sx={{ display: "flex", gap: 0.5, ml: 1 }}>
-                                <IconButton size="small" onClick={() => handleView(record)} sx={{ color: "info.main" }} title="View"><EyeIcon sx={{ fontSize: 16 }} /></IconButton>
-                                <IconButton size="small" onClick={() => handleEdit(record)} sx={{ color: "success.main" }} title="Edit"><EditIcon sx={{ fontSize: 16 }} /></IconButton>
-                                <IconButton size="small" onClick={() => handleDelete(record.certificate_of_action_id)} sx={{ color: "error.main" }} title="Delete"><DeleteIcon sx={{ fontSize: 16 }} /></IconButton>
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Tooltip title="View">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleView(record)} 
+                                    color="primary"
+                                  >
+                                    <EyeIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Edit">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleEdit(record)} 
+                                    color="success"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleDelete(record.certificate_of_action_id)} 
+                                    color="error"
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
                               </Box>
                             </Box>
                           </CardContent>
@@ -684,51 +1122,129 @@ export default function CertificateOfAction() {
 
             {/* TRANSACTION */}
             {activeTab === "transaction" && (
-              <Box sx={{ flex: 1, p: 2, overflow: "auto" }}>
-                <Card sx={{ borderRadius: 3, boxShadow: 1, mb: 2 }}>
-                  <CardHeader title={<Typography variant="h6">Search by Transaction Number</Typography>} sx={{ borderBottom: 1, borderColor: "grey.200" }} />
-                  <CardContent>
-                    <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-                      <TextField fullWidth size="small" placeholder="Enter transaction number (e.g., COA-240101-123456)" value={transactionSearch} onChange={(e) => setTransactionSearch(e.target.value)} InputProps={{ startAdornment: (<InputAdornment position="start"><FileTextIcon sx={{ color: "grey.400", fontSize: 20 }} /></InputAdornment>) }} />
-                      <Button variant="contained" color="primary" onClick={handleTransactionSearch} startIcon={<SearchIcon />} sx={{ px: 3 }}>Search</Button>
-                    </Box>
-                    <Typography variant="caption" color="text.secondary">Transaction numbers are generated automatically. Format: COA-YYMMDD-######</Typography>
-                  </CardContent>
-                </Card>
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                    <ReceiptIcon color="primary" />
+                    Transaction Search
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <TextField 
+                      fullWidth 
+                      size="small" 
+                      placeholder="Enter transaction number" 
+                      value={transactionSearch} 
+                      onChange={(e) => setTransactionSearch(e.target.value)} 
+                      InputProps={{ 
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <ReceiptIcon />
+                          </InputAdornment>
+                        ) 
+                      }} 
+                    />
+                    <Button 
+                      variant="contained" 
+                      color="primary" 
+                      onClick={handleTransactionSearch} 
+                      startIcon={<SearchIcon />}
+                    >
+                      Search
+                    </Button>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                    Format: COA-YYMMDD-######
+                  </Typography>
+                </Paper>
 
-                <Card sx={{ borderRadius: 3, boxShadow: 1 }}>
-                  <CardHeader title={<Typography variant="h6">Recent Transactions</Typography>} sx={{ borderBottom: 1, borderColor: "grey.200" }} />
-                  <CardContent>
-                    {transactionFilteredRecords.length === 0 ? (
-                      <Box sx={{ p: 3, textAlign: "center", color: "grey.500" }}>No transactions found</Box>
-                    ) : (
-                      <Stack spacing={1}>
-                        {transactionFilteredRecords.map((r) => (
-                          <Card key={r.certificate_of_action_id} sx={{ boxShadow: 0, '&:hover': { boxShadow: 1 }, transition: "box-shadow 0.2s", borderLeft: 3, borderColor: "primary.main" }}>
-                            <CardContent sx={{ p: 1.5 }}>
-                              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                <Box>
-                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{r.complainant_name}</Typography>
-                                  <Typography variant="caption" sx={{ color: "primary.main" }}>{r.transaction_number}</Typography>
-                                  <Typography variant="caption" sx={{ display: "block", color: "grey.600" }}>{r.barangay_case_no}</Typography>
-                                  <Typography variant="caption" sx={{ color: "grey.400" }}>Issued: {formatDateDisplay(r.date_issued)}</Typography>
+                <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
+                  {transactionFilteredRecords.length === 0 ? (
+                    <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
+                      <ReceiptIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                      <Typography variant="h6" gutterBottom>
+                        No transactions found
+                      </Typography>
+                      <Typography variant="body2">
+                        Enter a transaction number to search
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    <Stack spacing={2}>
+                      {transactionFilteredRecords.map((r) => (
+                        <Card key={r.certificate_of_action_id} sx={{ 
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          borderLeft: 4,
+                          borderColor: "secondary.main",
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5, color: "#000000" }}>
+                                  {r.complainant_name}
+                                </Typography>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                                  <Chip 
+                                    label={r.transaction_number} 
+                                    size="small" 
+                                    color="secondary" 
+                                    variant="outlined" 
+                                  />
                                 </Box>
-                                <Box sx={{ display: "flex", gap: 0.5 }}>
-                                  <IconButton size="small" onClick={() => handleView(r)} title="View"><EyeIcon sx={{ fontSize: 16 }} /></IconButton>
-                                  <IconButton size="small" onClick={() => handleEdit(r)} title="Edit"><EditIcon sx={{ fontSize: 16 }} /></IconButton>
-                                </Box>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                  {r.barangay_case_no}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Issued: {formatDateDisplay(r.date_issued)}
+                                </Typography>
                               </Box>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </Stack>
-                    )}
-                  </CardContent>
-                </Card>
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Tooltip title="View">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleView(r)} 
+                                    color="primary"
+                                  >
+                                    <EyeIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Edit">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleEdit(r)} 
+                                    color="success"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
               </Box>
             )}
-          </Paper>
-        </Container>
+          </Box>
+        </Box>
+
+        {/* FLOATING ACTION BUTTON FOR MOBILE */}
+        {isMobile && activeTab !== "form" && (
+          <Fab
+            color="primary"
+            aria-label="add"
+            sx={{
+              position: 'absolute',
+              bottom: 16,
+              right: 16,
+            }}
+            onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }}
+          >
+            <AddIcon />
+          </Fab>
+        )}
       </Box>
     </ThemeProvider>
   );
@@ -789,4 +1305,3 @@ const certificateStyles = {
     fontStyle: "italic",
   },
 };
-

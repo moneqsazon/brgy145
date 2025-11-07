@@ -36,6 +36,12 @@ import {
   Tab,
   createTheme,
   ThemeProvider,
+  Avatar,
+  Badge,
+  Tooltip,
+  Fab,
+  AppBar,
+  Toolbar,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -52,27 +58,154 @@ import {
   ZoomIn as ZoomInIcon,
   ZoomOut as ZoomOutIcon,
   RestartAlt as ResetIcon,
+  Folder as FolderIcon,
+  Dashboard as DashboardIcon,
+  Article as ArticleIcon,
 } from '@mui/icons-material';
+import { useMediaQuery } from '@mui/material';
 
-// Theme (matching PermitToTravel style)
+// Define the custom theme matching Permit to Travel
 const theme = createTheme({
   palette: {
-    primary: { main: '#41644A', light: '#A0B2A6', dark: '#0D4715' },
-    success: { main: '#41644A' },
-    background: { default: '#F1F0E9', paper: '#FFFFFF' },
-    text: { primary: '#0D4715' },
+    primary: {
+      main: '#41644A', // Darker green from palette
+      light: '#A0B2A6', // Lighter shade for hover/focus
+      dark: '#0D4715', // Even darker green for strong accents
+    },
+    secondary: {
+      main: '#E9762B', // Orange from palette for highlighting
+    },
+    success: {
+      main: '#41644A', // Darker green from palette
+      light: '#A0B2A6',
+      dark: '#0D4715',
+    },
+    background: {
+      default: '#F1F0E9', // Off-white/light beige
+      paper: '#FFFFFF',
+    },
+    text: {
+      primary: '#000000', // Black for main text
+      secondary: '#41644A', // Another shade for secondary text
+    },
+    error: {
+      main: '#E9762B',
+    },
   },
   components: {
     MuiButton: {
       styleOverrides: {
-        root: { textTransform: 'none', fontWeight: 600, borderRadius: 8 },
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: 8,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          '&:hover': {
+            boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+          },
+        },
+        containedPrimary: {
+          background: 'linear-gradient(45deg, #41644A 30%, #527D60 90%)',
+        },
+        containedSecondary: {
+          background: 'linear-gradient(45deg, #E9762B 30%, #F4944D 90%)',
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+          },
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          minHeight: 48,
+          color: '#000000',
+          '&.Mui-selected': {
+            color: '#41644A',
+          },
+        },
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          color: '#000000',
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          color: '#000000',
+          '&.Mui-focused': {
+            color: '#41644A',
+          },
+        },
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          color: '#000000',
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#000000',
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#41644A',
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#41644A',
+          },
+        },
+      },
+    },
+    MuiAutocomplete: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#000000',
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#41644A',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#41644A',
+            },
+          },
+        },
       },
     },
   },
 });
 
 export default function CashAssistance() {
-  const apiBase = 'http://localhost:5000'; // match backend base like PermitToTravel
+  const apiBase = 'http://localhost:5000';
   const navigate = useNavigate?.() || (() => {});
 
   const [records, setRecords] = useState([]);
@@ -87,6 +220,8 @@ export default function CashAssistance() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(0.75);
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [formData, setFormData] = useState({
     cash_assistance_id: '',
@@ -208,14 +343,29 @@ export default function CashAssistance() {
       storeCertificateData(display);
       const verificationUrl = `${window.location.origin}/verify-certificate?id=${display.cash_assistance_id || 'draft'}`;
       const qrContent = `CERTIFICATE VERIFICATION:
-Transaction No: ${display.transaction_number || 'N/A'}
-Name: ${display.full_name || ''}
-Date Issued: ${display.date_created ? formatDateTimeDisplay(display.date_created) : new Date().toLocaleString()}
-Document Type: Cash Assistance
-Verification URL: ${verificationUrl}
-`;
+        𝗧𝗿𝗮𝗻𝘀𝗮𝗰𝘁𝗶𝗼𝗻 𝗡𝗼: ${display.transaction_number || 'N/A'}
+        Name: ${display.full_name || ''}
+        Date Issued: ${
+        display.date_created
+        ? formatDateTimeDisplay(display.date_created)
+        : new Date().toLocaleString()
+        }
+        Document Type: Cash Assistance
+       
+        Ⓒ RRMS | BARANGAY 145
+        CALOOCAN CITY
+        ALL RIGHTS RESERVED
+        `;
       try {
-        const qr = await QRCode.toDataURL(qrContent, { width: 140, margin: 1 });
+        const qr = await QRCode.toDataURL(qrContent, { 
+          width: 140, 
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF',
+          },
+          errorCorrectionLevel: 'L',
+        });
         setQrCodeUrl(qr);
       } catch (err) {
         console.error('QR error', err);
@@ -328,7 +478,7 @@ Verification URL: ${verificationUrl}
     });
     setEditingId(null);
     setIsFormOpen(false);
-    setSelectedRecord(null)
+    setSelectedRecord(null);
   }
 
   function handleSubmit() {
@@ -372,7 +522,7 @@ Verification URL: ${verificationUrl}
 
   async function generatePDF() {
     if (!display.cash_assistance_id) {
-      alert('Please save the record first before downloading PDF');
+      alert('Please save record first before downloading PDF');
       return;
     }
     setIsGeneratingPDF(true);
@@ -431,11 +581,81 @@ Verification URL: ${verificationUrl}
 
   function handlePrint() {
     if (!display.cash_assistance_id) { alert('Please save first'); return; }
+    
+    // 1. Get the certificate element
     const certificateElement = document.getElementById('certificate-preview');
-    const printWindow = window.open('', '_blank');
-    const certificateHTML = certificateElement.outerHTML;
-    printWindow.document.write(`<!doctype html><html><head><title>Print</title><style>body{margin:0}#certificate-preview{width:8.5in;height:11in}</style></head><body>${certificateHTML}<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script></body></html>`);
-    printWindow.document.close();
+    if (!certificateElement) {
+      alert('Certificate not found for printing.');
+      return;
+    }
+
+    // 2. Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px'; // Move it way off-screen
+    iframe.style.top = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    document.body.appendChild(iframe);
+
+    // 3. Write the certificate content and styles into the iframe
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Certificate</title>
+          <style>
+            @page {
+              size: 8.5in 11in;
+              margin: 0;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            #certificate-preview {
+              width: 8.5in;
+              height: 11in;
+              position: relative;
+              overflow: hidden;
+              background: white;
+              box-sizing: border-box;
+            }
+            #certificate-preview * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+          </style>
+        </head>
+        <body>
+          ${certificateElement.outerHTML}
+        </body>
+      </html>
+    `);
+    iframeDoc.close();
+
+    // 4. Trigger the print dialog once the iframe content is loaded
+    setTimeout(() => {
+      const iframeWindow = iframe.contentWindow || iframe;
+      iframeWindow.focus(); // Required for some browsers
+      iframeWindow.print();
+
+      // 5. Clean up by removing the iframe after the print dialog
+      window.onafterprint = () => {
+        document.body.removeChild(iframe);
+      };
+      // Fallback cleanup in case onafterprint doesn't fire
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    }, 250); // A short delay to render
   }
 
   const handleZoomIn = () => setZoomLevel((p) => Math.min(p + 0.1, 2));
@@ -466,204 +686,751 @@ Verification URL: ${verificationUrl}
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-        {/* LEFT: Certificate preview */}
-        <Box sx={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 1, p: 2, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'grey.200' }}>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <IconButton onClick={handleZoomOut} color="primary" sx={{ border: '1px solid', borderColor: 'grey.300' }}><ZoomOutIcon /></IconButton>
-              <Typography variant="body2" sx={{ minWidth: 60, textAlign: 'center', fontWeight: 600 }}>{Math.round(zoomLevel*100)}%</Typography>
-              <IconButton onClick={handleZoomIn} color="primary" sx={{ border: '1px solid', borderColor: 'grey.300' }}><ZoomInIcon /></IconButton>
-              <IconButton onClick={handleResetZoom} color="primary" size="small" sx={{ border: '1px solid', borderColor: 'grey.300' }}><ResetIcon fontSize="small" /></IconButton>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', bgcolor: 'background.default' }}>
+        {/* TOP HEADER */}
+        <Paper elevation={2} sx={{ zIndex: 10, borderRadius: 0 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            p: 2,
+            bgcolor: 'primary.main',
+            color: 'white'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar src={Logo145} sx={{ width: 48, height: 48 }} />
+              <Box>
+                <Typography variant="h5" fontWeight="bold">
+                  Cash Assistance
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Manage all records of Cash Assistance
+                </Typography>
+              </Box>
             </Box>
-
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button variant="outlined" color="primary" onClick={() => { if (display.cash_assistance_id) window.open(window.location.origin + `/verify-certificate?id=${display.cash_assistance_id}`, '_blank'); }} startIcon={<QrCodeIcon />} disabled={!display.cash_assistance_id} sx={{ textTransform: 'none', fontWeight: 600, px: 3 }}>View Certificate Details</Button>
-              <Button variant="contained" color="success" onClick={generatePDF} disabled={!display.cash_assistance_id || isGeneratingPDF} startIcon={<FileTextIcon />} sx={{ textTransform: 'none', fontWeight: 600, px: 3 }}>{isGeneratingPDF ? 'Generating...' : 'Download PDF'}</Button>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Badge badgeContent={records.length} color="secondary">
+                <Chip 
+                  icon={<FolderIcon />}
+                  label="Total Records" 
+                  sx={{ 
+                    bgcolor: "rgba(255,255,255,0.2)", 
+                    color: "white",
+                    fontWeight: 600
+                  }} 
+                />
+              </Badge>
+              
+              <Button 
+                variant="contained" 
+                color="secondary" 
+                startIcon={<AddIcon />} 
+                onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }}
+                sx={{ borderRadius: 20, px: 3 }}
+              >
+                New Certificate
+              </Button>
             </Box>
           </Box>
 
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', flex: 1, overflow: 'auto', padding: '20px 0' }}>
-            <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }}>
-              <div id="certificate-preview" style={{ position: 'relative', width: '8.5in', height: '11in', boxShadow: '0 0 8px rgba(0,0,0,0.2)', background: '#fff', overflow: 'hidden' }}>
-                {/* Logos & watermark */}
-                <img style={{ position: 'absolute', width: '100px', height: '100px', top: '60px', left: '60px' }} src={CaloocanLogo} alt="Logo 1" />
-                <img style={{ position: 'absolute', width: '110px', height: '110px', top: '60px', right: '40px' }} src={Logo145} alt="Logo 3" />
-                <img style={{ position: 'absolute', opacity: 0.2, width: '550px', left: '50%', top: '270px', transform: 'translateX(-50%)' }} src={Logo145} alt="Watermark" />
+          {/* NAVIGATION TABS */}
+          <Box sx={{ bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}>
+            <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+              <Tabs 
+                value={activeTab} 
+                onChange={(e, nv) => setActiveTab(nv)} 
+                variant="fullWidth"
+                sx={{ 
+                  "& .MuiTabs-indicator": { height: 3, borderRadius: "3px 3px 0 0" },
+                  minHeight: 48
+                }}
+              >
+                <Tab 
+                  icon={<ArticleIcon />} 
+                  label="Form" 
+                  value="form"
+                  iconPosition="start"
+                />
+                <Tab 
+                  icon={<FolderIcon />} 
+                  label={`Records (${records.length})`} 
+                  value="records"
+                  iconPosition="start"
+                />
+                <Tab 
+                  icon={<ReceiptIcon />} 
+                  label="Transaction" 
+                  value="transaction"
+                  iconPosition="start"
+                />
+              </Tabs>
+            </Box>
+          </Box>
+        </Paper>
 
-                {/* Header */}
-                <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "20px", fontWeight: "bold", fontFamily: '"Lucida Calligraphy", cursive', top: "50px" }}>
-              Republic of the Philippines
-            </div>
-            <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "13pt", fontWeight: "bold", fontFamily: "Arial, sans-serif", top: "84px" }}>
-              CITY OF CALOOCAN
-            </div>
-            <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "15pt", fontWeight: "bold", fontFamily: '"Arial Black", sans-serif', top: "110px" }}>
-              BARANGAY 145 ZONES 13 DIST. 1
-            </div>
-            <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "15pt", fontWeight: "bold", fontFamily: '"Arial Black", sans-serif', top: "138px" }}>
-              Tel. No. 8711 - 7134
-            </div>
-            <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "12pt", fontWeight: "bold", fontFamily: '"Arial Black", sans-serif', top: "166px" }}>
-              OFFICE OF THE BARANGAY CHAIRMAN
-            </div>
-                <div style={{ position: 'absolute', top: '200px', width: '100%', textAlign: 'center' }}>
-                  <span style={{ fontFamily: 'Times New Roman', fontSize: '20pt', fontWeight: 'bold', display: 'inline-block', color: '#0b7030', padding: '4px 70px', fontStyle: 'italic', textDecoration: 'underline' }}>CERTIFICATION</span>
-                </div>
-
-                {/* Body */}
-                <div style={{ position: 'absolute', whiteSpace: 'pre-wrap', top: '330px', left: '80px', width: '640px', textAlign: 'justify', fontFamily: '"Times New Roman", serif', fontSize: '12pt', fontWeight: 'bold', color: 'black' }}>
-                  TO WHOM IT MAY CONCERN:
-                  <p style={{ textIndent: '50px' }}>
-                    This is to certify that <span style={{ textDecoration: 'underline' }}>{formData.full_name || '____________________'}</span> is a bona fide resident of Barangay 145, Caloocan City since <span style={{ textDecoration: 'underline' }}>{formData.sinceYear || '________'}</span>, residing at <span style={{ textDecoration: 'underline' }}>{formData.address || '____________________'}</span>.
-                  </p>
-                  <p style={{ textIndent: '50px' }}>
-                    This certification is issued upon the request of <span style={{ textDecoration: 'underline' }}>{formData.full_name || '____________________'}</span> for <span style={{ textDecoration: 'underline' }}>{formData.request_reason || '____________________'}</span> Cash Assistance.
-                  </p>
-                  <p style={{ textIndent: '50px' }}>
-                    Issued this <span style={{ textDecoration: 'underline' }}>{formData.date_issued ? (() => { const date = new Date(formData.date_issued); const day = date.getDate(); const month = date.toLocaleString('default', { month: 'long' }); const year = date.getFullYear(); const suffix = day % 10 === 1 && day !== 11 ? 'st' : day % 10 === 2 && day !== 12 ? 'nd' : day % 10 === 3 && day !== 13 ? 'rd' : 'th'; return `${day}${suffix} day of ${month}, ${year}`; })() : '________'}</span>, at Barangay 145, Zone 13, Dist. 1, Caloocan City.
-                  </p>
-                </div>
-
-                <div style={{ position: 'absolute', top: '600px', left: '80px', width: '250px', textAlign: 'left', fontFamily: '"Times New Roman", serif', fontSize: '12pt', fontWeight: 'bold' }}>
-                  <div style={{ color: 'black', fontFamily: 'inherit' }}>Certified Correct:</div>
-                  <br /><br />
-                  <div style={{ color: 'black', fontFamily: 'inherit' }}>Roselyn Anore</div>
-                  <div style={{ color: 'black', fontFamily: 'inherit' }}>Barangay Secretary</div>
-                </div>
-
-                <div style={{ position: 'absolute', top: '700px', right: '20px', width: '300px', textAlign: 'left', fontFamily: '"Times New Roman", serif', fontWeight: 'bold' }}>
-                  <div style={{ color: 'black', fontFamily: 'inherit', fontSize: '12pt' }}>Attested:</div>
-                  <br /><br />
-                  <div style={{ color: 'black', fontFamily: 'inherit', fontSize: '16pt', fontStyle: 'italic' }}>ARNOLD DONDONAYOS</div>
-                  <div style={{ color: 'black', fontFamily: 'inherit', fontSize: '12pt', fontStyle: 'italic' }}>Barangay Chairman</div>
-                </div>
-
-                {/* QR and signature area */}
-                <div style={{ position: 'absolute', top: '780px', left: '50px', width: '250px', textAlign: 'center', fontFamily: '"Times New Roman", serif', fontSize: '12pt', fontWeight: 'bold' }}>
-                  <div style={{ borderTop: '2px solid #000', width: '65%', margin: 'auto' }}></div>
-                  <div style={{ color: 'black', fontFamily: 'inherit' }}>Applicant's Signature</div>
-
-                  {qrCodeUrl && (
-                    <div style={{ marginTop: '12px' }}>
-                      <div onClick={handleQrCodeClick} style={{ cursor: 'pointer', display: 'inline-block' }} title="Click to view certificate details">
-                        <img src={qrCodeUrl} alt="QR" style={{ width: '150px', height: '150px', border: '2px solid #000', padding: '5px', background: '#fff' }} />
-                      </div>
-                      <div style={{ fontSize: '8pt', color: '#666', marginTop: '6px', fontWeight: 'normal' }}>
-                        {display.date_created ? formatDateTimeDisplay(display.date_created) : new Date().toLocaleString()}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <style>{`@media print { body * { visibility: hidden; } #certificate-preview, #certificate-preview * { visibility: visible; } #certificate-preview { position: absolute; left: 0; top: 0; width: 8.5in; height: 11in; transform: none !important; } @page { size: portrait; margin: 0; } #certificate-preview * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; } }`}</style>
-        </Box>
-
-        {/* RIGHT: CRUD container */}
-        <Container maxWidth={false} sx={{ flexGrow: 1, minWidth: '400px', maxWidth: '600px', height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default', borderLeft: 1, borderColor: 'grey.300', p: 0 }} disableGutters>
-          <Paper sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.paper', borderRadius: 0 }}>
-            <Paper elevation={0} sx={{ position: 'sticky', paddingTop: 5, zIndex: 10, bgcolor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', borderBottom: 1, borderColor: 'grey.200' }}>
-              <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary' }}>Cash Assistance</Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button variant="outlined" size="small" startIcon={<PrintIcon />} onClick={handlePrint} disabled={!display.cash_assistance_id} sx={{ color: 'primary.main', borderColor: 'primary.main' }}>Print</Button>
-                  <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab('form'); }} color="primary">New</Button>
+        {/* MAIN CONTENT AREA */}
+        <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* LEFT: Certificate preview */}
+          <Box sx={{ 
+            flex: 1, 
+            overflow: 'auto', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            bgcolor: 'background.default',
+            p: 2,
+            [theme.breakpoints.down('lg')]: { display: activeTab === "form" ? 'none' : 'flex' }
+          }}>
+            {/* ZOOM CONTROLS */}
+            <Paper elevation={1} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+              <Box sx={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 1
+              }}>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  <Tooltip title="Zoom Out">
+                    <IconButton onClick={handleZoomOut} color="primary" size="small">
+                      <ZoomOutIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="body2" sx={{ 
+                    minWidth: 60, 
+                    textAlign: "center", 
+                    fontWeight: 600,
+                    px: 1,
+                    py: 0.5,
+                    bgcolor: "background.paper",
+                    borderRadius: 1,
+                    color: "#000000"
+                  }}>
+                    {Math.round(zoomLevel * 100)}%
+                  </Typography>
+                  <Tooltip title="Zoom In">
+                    <IconButton onClick={handleZoomIn} color="primary" size="small">
+                      <ZoomInIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Reset Zoom">
+                    <IconButton onClick={handleResetZoom} color="primary" size="small">
+                      <ResetIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Box>
-              </Box>
 
-              <Box sx={{ px: 1, pb: 1 }}>
-                <Paper sx={{ p: 0.5, bgcolor: 'background.default', borderRadius: 2 }}>
-                  <Tabs value={activeTab} onChange={(e, nv) => setActiveTab(nv)} aria-label="cash tabs" variant="fullWidth" sx={{ minHeight: 'unset', '& .MuiTabs-flexContainer': { gap: 0.5 } }}>
-                    <Tab value="form" label="Form" sx={{ minHeight: 'unset', py: 1, bgcolor: activeTab === 'form' ? 'background.paper' : 'transparent', color: activeTab === 'form' ? 'primary.main' : 'text.secondary' }} />
-                    <Tab value="records" label={`Records (${records.length})`} sx={{ minHeight: 'unset', py: 1 }} />
-                    <Tab value="transaction" label="Transaction" sx={{ minHeight: 'unset', py: 1 }} />
-                  </Tabs>
-                </Paper>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Tooltip title="Verify Certificate">
+                    <Button 
+                      variant="outlined" 
+                      color="primary" 
+                      onClick={handleQrCodeClick} 
+                      startIcon={<QrCodeIcon />} 
+                      disabled={!display.cash_assistance_id}
+                      size="small"
+                    >
+                      Verify
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Download PDF">
+                    <Button 
+                      variant="contained" 
+                      color="secondary" 
+                      onClick={generatePDF} 
+                      disabled={!display.cash_assistance_id || isGeneratingPDF} 
+                      startIcon={<FileTextIcon />}
+                      size="small"
+                    >
+                      {isGeneratingPDF ? "Generating..." : "Download"}
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Print">
+                    <Button 
+                      variant="outlined" 
+                      onClick={handlePrint} 
+                      disabled={!display.cash_assistance_id}
+                      startIcon={<PrintIcon />}
+                      size="small"
+                    >
+                      Print
+                    </Button>
+                  </Tooltip>
+                </Box>
               </Box>
             </Paper>
 
-            {/* Form Tab */}
-            {activeTab === 'form' && (
-              <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
-                <Card sx={{ borderRadius: 3, boxShadow: 1 }}>
-                  <CardHeader title={<Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, color: 'grey.800' }}>{editingId ? 'Edit Record' : 'New Cash Assistance Record'}</Typography>} subheader={selectedRecord && !editingId && (<Typography variant="caption" sx={{ color: 'grey.500' }}>Viewing: {selectedRecord.full_name}</Typography>)} sx={{ borderBottom: 1, borderColor: 'grey.200' }} />
-                  <CardContent>
-                    <Stack spacing={2}>
-                      <Autocomplete
-                        options={residents}
-                        getOptionLabel={(option) => option.full_name || ''}
-                        value={residents.find((r) => r.resident_id === formData.resident_id) || null}
-                        onChange={(event, newValue) => {
-                          if (newValue) {
-                            // try to derive sinceYear from created_at if available
-                            let sinceYear = formData.sinceYear;
-                            if (newValue.created_at) {
-                              const y = new Date(newValue.created_at).getFullYear();
-                              sinceYear = String(y);
-                            }
-                            setFormData({
-                              ...formData,
-                              resident_id: newValue.resident_id,
-                              full_name: newValue.full_name || '',
-                              address: newValue.address || '',
-                              sinceYear: sinceYear || formData.sinceYear,
-                            });
-                          } else {
-                            setFormData({ ...formData, resident_id: '', full_name: '' });
+            {/* CERTIFICATE PREVIEW */}
+            <Box sx={{ 
+              display: "flex", 
+              justifyContent: "center", 
+              alignItems: "flex-start", 
+              flex: 1, 
+              overflow: "auto",
+              p: 1
+            }}>
+              <Box sx={{ transform: `scale(${zoomLevel})`, transformOrigin: "top center" }}>
+                <div
+                  id="certificate-preview"
+                  style={{
+                    position: 'relative',
+                    width: '8.5in',
+                    height: '11in',
+                    boxShadow: '0 0 8px rgba(0,0,0,0.2)',
+                    background: '#fff',
+                    WebkitPrintColorAdjust: 'exact',
+                    printColorAdjust: 'exact',
+                    colorAdjust: 'exact',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Logos & watermark */}
+                  <img
+                    style={{
+                      position: 'absolute',
+                      width: '100px',
+                      height: '100px',
+                      top: '60px',
+                      left: '60px',
+                    }}
+                    src={CaloocanLogo}
+                    alt="Logo 1"
+                  />
+                  <img
+                    style={{
+                      position: 'absolute',
+                      width: '110px',
+                      height: '110px',
+                      top: '60px',
+                      right: '40px',
+                    }}
+                    src={Logo145}
+                    alt="Logo 3"
+                  />
+                  <img
+                    style={{
+                      position: 'absolute',
+                      opacity: 0.2,
+                      width: '550px',
+                      left: '50%',
+                      top: '270px',
+                      transform: 'translateX(-50%)',
+                    }}
+                    src={Logo145}
+                    alt="Watermark"
+                  />
+
+                  {/* Header */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      whiteSpace: "pre",
+                      textAlign: "center",
+                      width: "100%",
+                      fontSize: "20px",
+                      fontWeight: "bold",
+                      fontFamily: '"Lucida Calligraphy", cursive',
+                      top: "50px",
+                    }}
+                  >
+                    Republic of the Philippines
+                  </div>
+                  <div
+                    style={{
+                      position: "absolute",
+                      whiteSpace: "pre",
+                      textAlign: "center",
+                      width: "100%",
+                      fontSize: "13pt",
+                      fontWeight: "bold",
+                      fontFamily: "Arial, sans-serif",
+                      top: "84px",
+                    }}
+                  >
+                    CITY OF CALOOCAN
+                  </div>
+                  <div
+                    style={{
+                      position: "absolute",
+                      whiteSpace: "pre",
+                      textAlign: "center",
+                      width: "100%",
+                      fontSize: "15pt",
+                      fontWeight: "bold",
+                      fontFamily: '"Arial Black", sans-serif',
+                      top: "110px",
+                    }}
+                  >
+                    BARANGAY 145 ZONES 13 DIST. 1
+                  </div>
+                  <div
+                    style={{
+                      position: "absolute",
+                      whiteSpace: "pre",
+                      textAlign: "center",
+                      width: "100%",
+                      fontSize: "15pt",
+                      fontWeight: "bold",
+                      fontFamily: '"Arial Black", sans-serif',
+                      top: "138px",
+                    }}
+                  >
+                    Tel. No. 8711 - 7134
+                  </div>
+                  <div
+                    style={{
+                      position: "absolute",
+                      whiteSpace: "pre",
+                      textAlign: "center",
+                      width: "100%",
+                      fontSize: "12pt",
+                      fontWeight: "bold",
+                      fontFamily: '"Arial Black", sans-serif',
+                      top: "166px",
+                    }}
+                  >
+                    OFFICE OF THE BARANGAY CHAIRMAN
+                  </div>
+                  <div style={{ position: 'absolute', top: '200px', width: '100%', textAlign: 'center' }}>
+                  <span style={{ fontFamily: 'Times New Roman', fontSize: '20pt', fontWeight: 'bold', display: 'inline-block', color: '#0b7030', padding: '4px 70px', fontStyle: 'italic', textDecoration: 'underline' }}>CERTIFICATION</span>
+                </div>
+
+                  {/* Body */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      whiteSpace: 'pre-wrap',
+                      top: '330px',
+                      left: '80px',
+                      width: '640px',
+                      textAlign: 'justify',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                      fontWeight: 'bold',
+                      color: 'black',
+                    }}
+                  >
+                    TO WHOM IT MAY CONCERN:
+                    <p style={{ textIndent: '50px' }}>
+                      This is to certify that <span style={{ textDecoration: 'underline' }}>{display.full_name || '____________________'}</span> is a bona fide resident of Barangay 145, Caloocan City since <span style={{ textDecoration: 'underline' }}>{display.sinceYear || '________'}</span>, residing at <span style={{ textDecoration: 'underline' }}>{display.address || '____________________'}</span>.
+                    </p>
+                    <p style={{ textIndent: '50px' }}>
+                      This certification is issued upon the request of <span style={{ textDecoration: 'underline' }}>{display.full_name || '____________________'}</span> for <span style={{ textDecoration: 'underline' }}>{display.request_reason || '____________________'}</span> Cash Assistance.
+                    </p>
+                    <p style={{ textIndent: '50px' }}>
+                      Issued this <span style={{ textDecoration: 'underline' }}>{display.date_issued ? (() => { 
+                        const date = new Date(display.date_issued); 
+                        const day = date.getDate(); 
+                        const month = date.toLocaleString('default', { month: 'long' }); 
+                        const year = date.getFullYear(); 
+                        const suffix = day % 10 === 1 && day !== 11 ? 'st' : day % 10 === 2 && day !== 12 ? 'nd' : day % 10 === 3 && day !== 13 ? 'rd' : 'th'; 
+                        return `${day}${suffix} day of ${month}, ${year}`; 
+                      })() : '________'}</span>, at Barangay 145, Zone 13, Dist. 1, Caloocan City.
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '600px',
+                      left: '80px',
+                      width: '250px',
+                      textAlign: 'left',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    <div style={{ color: 'black', fontFamily: 'inherit' }}>Certified Correct:</div>
+                    <br /><br />
+                    <div style={{ color: 'black', fontFamily: 'inherit' }}>Roselyn Anore</div>
+                    <div style={{ color: 'black', fontFamily: 'inherit' }}>Barangay Secretary</div>
+                  </div>
+
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '700px',
+                      right: '20px',
+                      width: '300px',
+                      textAlign: 'left',
+                      fontFamily: '"Times New Roman", serif',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    <div style={{ color: 'black', fontFamily: 'inherit', fontSize: '12pt' }}>Attested:</div>
+                    <br /><br />
+                    <div style={{ color: 'black', fontFamily: 'inherit', fontSize: '16pt', fontStyle: 'italic' }}>ARNOLD DONDONAYOS</div>
+                    <div style={{ color: 'black', fontFamily: 'inherit', fontSize: '12pt', fontStyle: 'italic' }}>Barangay Chairman</div>
+                  </div>
+
+                  {/* QR and signature area */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '780px',
+                      left: '50px',
+                      width: '250px',
+                      textAlign: 'center',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    <div style={{ borderTop: '2px solid #000', width: '65%', margin: 'auto' }}></div>
+                    <div style={{ color: 'black', fontFamily: 'inherit' }}>Applicant's Signature</div>
+
+                    {qrCodeUrl && (
+                      <div style={{ marginTop: '12px' }}>
+                        <div
+                          onClick={handleQrCodeClick}
+                          style={{
+                            cursor: 'pointer',
+                            position: 'relative',
+                            display: 'inline-block',
+                          }}
+                          title="Click to view certificate details"
+                        >
+                          <img
+                            src={qrCodeUrl}
+                            alt="QR Code"
+                            style={{
+                              width: '150px',
+                              height: '150px',
+                              border: '2px solid #000',
+                              padding: '5px',
+                              background: '#fff',
+                            }}
+                          />
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: 'rgba(255,255,255,0)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: 0,
+                              transition: 'opacity 0.3s',
+                              borderRadius: '4px',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.opacity = '0.7';
+                              e.currentTarget.style.backgroundColor =
+                                'rgba(255,255,255,0.8)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.opacity = '0';
+                              e.currentTarget.style.backgroundColor =
+                                'rgba(255,255,255,0)';
+                            }}
+                          >
+                            <QrCodeIcon
+                              sx={{
+                                fontSize: 40,
+                                color: theme.palette.success.main,
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '8pt',
+                            color: '#666',
+                            marginTop: '6px',
+                            fontWeight: 'normal',
+                          }}
+                        >
+                          {display.date_created
+                            ? formatDateTimeDisplay(display.date_created)
+                            : new Date().toLocaleString()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Box>
+            </Box>
+
+            <style>
+              {`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #certificate-preview, #certificate-preview * {
+            visibility: visible;
+          }
+          #certificate-preview {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 8.5in;
+            height: 11in;
+            transform: none !important; /* Remove any transforms */
+          }
+          @page {
+            size: portrait;
+            margin: 0;
+          }
+          /* Ensure colors are preserved when printing */
+          #certificate-preview * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+        }
+      `}
+            </style>
+          </Box>
+
+          {/* RIGHT: FORM/RECORDS PANEL */}
+          <Box sx={{ 
+            width: { xs: '100%', md: '50%', lg: '40%' }, 
+            bgcolor: "background.paper", 
+            borderLeft: { xs: 0, md: 1 }, 
+            borderColor: "divider",
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* FORM */}
+            {activeTab === "form" && (
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+                    <ArticleIcon color="primary" />
+                    {editingId ? "Edit Certificate" : "New Cash Assistance"}
+                  </Typography>
+                  {selectedRecord && !editingId && (
+                    <Typography variant="body2" color="text.secondary">
+                      Viewing: {selectedRecord.full_name}
+                    </Typography>
+                  )}
+                </Paper>
+
+                <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
+                  <Stack spacing={3}>
+                    <Autocomplete
+                      options={residents}
+                      getOptionLabel={(option) => option.full_name || ''}
+                      value={residents.find((r) => r.resident_id === formData.resident_id) || null}
+                      onChange={(event, newValue) => {
+                        if (newValue) {
+                          // try to derive sinceYear from created_at if available
+                          let sinceYear = formData.sinceYear;
+                          if (newValue.created_at) {
+                            const y = new Date(newValue.created_at).getFullYear();
+                            sinceYear = String(y);
                           }
-                        }}
-                        renderInput={(params) => (<TextField {...params} label="Full Name *" variant="outlined" size="small" fullWidth />)}
-                      />
+                          setFormData({
+                            ...formData,
+                            resident_id: newValue.resident_id,
+                            full_name: newValue.full_name || '',
+                            address: newValue.address || '',
+                            sinceYear: sinceYear || formData.sinceYear,
+                          });
+                        } else {
+                          setFormData({ ...formData, resident_id: '', full_name: '' });
+                        }
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Full Name *"
+                          variant="outlined"
+                          size="small"
+                          fullWidth
+                          required
+                        />
+                      )}
+                    />
 
-                      <TextField label="Year (Since Resident) *" type="number" variant="outlined" size="small" fullWidth placeholder="e.g. 2015" value={formData.sinceYear || ''} onChange={(e) => setFormData({ ...formData, sinceYear: e.target.value })} />
+                    <TextField
+                      label="Year (Since Resident) *"
+                      type="number"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      placeholder="e.g. 2015"
+                      value={formData.sinceYear || ''}
+                      onChange={(e) => setFormData({ ...formData, sinceYear: e.target.value })}
+                      required
+                    />
 
-                      <TextField label="Address *" variant="outlined" size="small" fullWidth multiline rows={2} value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                    <TextField
+                      label="Address *"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      multiline
+                      rows={2}
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      required
+                    />
 
-                      <TextField label="Request Reason *" variant="outlined" size="small" fullWidth multiline rows={2} placeholder="Medical emergencies, Financial hardship, etc." value={formData.request_reason} onChange={(e) => setFormData({ ...formData, request_reason: e.target.value })} />
+                    <TextField
+                      label="Request Reason *"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      multiline
+                      rows={2}
+                      placeholder="Medical emergencies, Financial hardship, etc."
+                      value={formData.request_reason}
+                      onChange={(e) => setFormData({ ...formData, request_reason: e.target.value })}
+                      required
+                    />
 
-                      <TextField label="Date Issued *" type="date" variant="outlined" size="small" fullWidth InputLabelProps={{ shrink: true }} value={formData.date_issued} onChange={(e) => setFormData({ ...formData, date_issued: e.target.value })} helperText={formData.date_issued ? (()=>{ const date=new Date(formData.date_issued); const day=date.getDate(); const month = date.toLocaleString('default',{month:'long'}); const year = date.getFullYear(); const suffix = day%10===1&&day!==11? 'st' : day%10===2&&day!==12? 'nd' : day%10===3&&day!==13? 'rd' : 'th'; return `Formatted: ${day}${suffix} day of ${month}, ${year}`; })() : 'Select the date'} />
+                    <TextField
+                      label="Date Issued *"
+                      type="date"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      value={formData.date_issued}
+                      onChange={(e) => setFormData({ ...formData, date_issued: e.target.value })}
+                      helperText={formData.date_issued ? (()=>{
+                        const date=new Date(formData.date_issued);
+                        const day=date.getDate();
+                        const month = date.toLocaleString('default',{month:'long'});
+                        const year = date.getFullYear();
+                        const suffix = day%10===1&&day!==11? 'st' : day%10===2&&day!==12? 'nd' : day%10===3&&day!==13? 'rd' : 'th';
+                        return `Formatted: ${day}${suffix} day of ${month}, ${year}`;
+                      })() : 'Select date'}
+                      required
+                    />
 
-                      <Box sx={{ display: 'flex', gap: 1, pt: 1 }}>
-                        <Button onClick={handleSubmit} variant="contained" startIcon={<SaveIcon />} fullWidth color="primary" sx={{ py: 1.25 }}>{editingId ? 'Update' : 'Save'}</Button>
-                        {(editingId || isFormOpen) && (<Button onClick={resetForm} variant="outlined" startIcon={<CloseIcon />} color="primary" sx={{ py: 1.25, px: 2 }}>Cancel</Button>)}
-                      </Box>
-                    </Stack>
-                  </CardContent>
-                </Card>
+                    <Box sx={{ display: 'flex', gap: 1, pt: 1 }}>
+                      <Button
+                        onClick={handleSubmit}
+                        variant="contained"
+                        startIcon={<SaveIcon />}
+                        fullWidth
+                        color="primary"
+                        size="large"
+                      >
+                        {editingId ? 'Update' : 'Save'}
+                      </Button>
+                      {(editingId || isFormOpen) && (
+                        <Button
+                          onClick={resetForm}
+                          variant="outlined"
+                          startIcon={<CloseIcon />}
+                          color="primary"
+                          size="large"
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                    </Box>
+                  </Stack>
+                </Box>
               </Box>
             )}
 
-            {/* Records Tab */}
-            {activeTab === 'records' && (
-              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <Box sx={{ p: 1.5 }}>
-                  <TextField fullWidth size="small" placeholder="Search records..." value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon sx={{ color: 'grey.400', fontSize: 20 }} /></InputAdornment>) }} />
-                </Box>
+            {/* RECORDS */}
+            {activeTab === "records" && (
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                    <FolderIcon color="primary" />
+                    Certificate Records
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Search by name, address, or request reason"
+                    value={searchTerm}
+                    onChange={(e)=>setSearchTerm(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      )
+                    }}
+                  />
+                </Paper>
 
-                <Box sx={{ flex: 1, overflow: 'auto', px: 1.5, pb: 1.5 }}>
+                <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
                   {filteredRecords.length === 0 ? (
-                    <Paper sx={{ p: 3, textAlign: 'center', color: 'grey.500' }}><Typography variant="body2">{searchTerm ? 'No records found' : 'No records yet'}</Typography></Paper>
+                    <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
+                      <FolderIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                      <Typography variant="h6" gutterBottom>
+                        {searchTerm ? "No records found" : "No records yet"}
+                      </Typography>
+                      <Typography variant="body2">
+                        {searchTerm ? "Try a different search term" : "Create your first certificate to get started"}
+                      </Typography>
+                    </Paper>
                   ) : (
-                    <Stack spacing={1}>
+                    <Stack spacing={2}>
                       {filteredRecords.map((record) => (
-                        <Card key={record.cash_assistance_id} sx={{ boxShadow: 1, '&:hover': { boxShadow: 2 }, transition: 'box-shadow 0.2s', borderLeft: '4px solid', borderColor: 'primary.main' }}>
-                          <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Card key={record.cash_assistance_id} sx={{
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          borderLeft: 4,
+                          borderColor: "primary.main",
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                               <Box sx={{ flex: 1 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>{record.full_name}</Typography>
-                                <Typography variant="caption" sx={{ color: 'grey.600', display: 'block', mb: 0.5 }}>Since: {record.sinceYear}</Typography>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
-                                  <Chip label={`Issued: ${formatDateDisplay(record.date_issued)}`} size="small" sx={{ bgcolor: 'primary.light', color: 'primary.dark', fontSize: '0.625rem', height: 20 }} />
+                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5, color: "#000000" }}>
+                                  {record.full_name}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                  {record.address}
+                                </Typography>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                                  <Chip
+                                    label={`Since: ${record.sinceYear}`}
+                                    size="small"
+                                    color="primary"
+                                    variant="outlined"
+                                  />
+                                  <Typography variant="caption" color="text.secondary">
+                                    Issued: {formatDateDisplay(record.date_issued)}
+                                  </Typography>
                                 </Box>
-                                <Typography variant="caption" sx={{ color: 'grey.700', display: 'block', mt: 0.5 }}>{record.request_reason}</Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {record.request_reason}
+                                </Typography>
                               </Box>
-                              <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
-                                <IconButton size="small" onClick={()=>handleView(record)} sx={{ color: 'info.main', '&:hover': { bgcolor: 'info.lighter' }, p: 0.75 }} title="View"><EyeIcon sx={{ fontSize: 16 }} /></IconButton>
-                                <IconButton size="small" onClick={()=>handleEdit(record)} sx={{ color: 'success.main', '&:hover': { bgcolor: 'success.lighter' }, p: 0.75 }} title="Edit"><EditIcon sx={{ fontSize: 16 }} /></IconButton>
-                                <IconButton size="small" onClick={()=>handleDelete(record.cash_assistance_id)} sx={{ color: 'error.main', '&:hover': { bgcolor: 'error.lighter' }, p: 0.75 }} title="Delete"><DeleteIcon sx={{ fontSize: 16 }} /></IconButton>
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Tooltip title="View">
+                                  <IconButton
+                                    size="small"
+                                    onClick={()=>handleView(record)}
+                                    color="primary"
+                                  >
+                                    <EyeIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Edit">
+                                  <IconButton
+                                    size="small"
+                                    onClick={()=>handleEdit(record)}
+                                    color="success"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete">
+                                  <IconButton
+                                    size="small"
+                                    onClick={()=>handleDelete(record.cash_assistance_id)}
+                                    color="error"
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
                               </Box>
                             </Box>
                           </CardContent>
@@ -675,70 +1442,239 @@ Verification URL: ${verificationUrl}
               </Box>
             )}
 
-            {/* Transaction Tab */}
-            {activeTab === 'transaction' && (
-              <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
-                <Card sx={{ borderRadius: 3, boxShadow: 1, mb: 2 }}>
-                  <CardHeader title={<Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, color: 'grey.800' }}>Search by Transaction Number</Typography>} sx={{ borderBottom: 1, borderColor: 'grey.200' }} />
-                  <CardContent>
-                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                      <TextField fullWidth size="small" placeholder="Enter transaction number (e.g., CA-240101-123456)" value={transactionSearch} onChange={(e)=>setTransactionSearch(e.target.value)} InputProps={{ startAdornment: (<InputAdornment position="start"><ReceiptIcon sx={{ color: 'grey.400', fontSize: 20 }} /></InputAdornment>) }} />
-                      <Button variant="contained" color="primary" onClick={handleTransactionSearch} startIcon={<SearchIcon />} sx={{ fontWeight: 600, px: 3 }}>Search</Button>
-                    </Box>
-                    <Typography variant="caption" sx={{ color: 'grey.500' }}>Transaction numbers are automatically generated when creating a new certificate. Format: CA-YYMMDD-######</Typography>
-                  </CardContent>
-                </Card>
+            {/* TRANSACTION */}
+            {activeTab === "transaction" && (
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                    <ReceiptIcon color="primary" />
+                    Transaction Search
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="Enter transaction number (e.g., CA-240101-123456)"
+                      value={transactionSearch}
+                      onChange={(e)=>setTransactionSearch(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <ReceiptIcon />
+                          </InputAdornment>
+                        )
+                      }}
+                    />
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handleTransactionSearch}
+                      startIcon={<SearchIcon />}
+                    >
+                      Search
+                    </Button>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                    Transaction numbers are automatically generated when creating a new certificate. Format: CA-YYMMDD-######
+                  </Typography>
+                </Paper>
 
-                <Card sx={{ borderRadius: 3, boxShadow: 1 }}>
-                  <CardHeader title={<Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, color: 'grey.800' }}>Recent Transactions</Typography>} sx={{ borderBottom: 1, borderColor: 'grey.200' }} />
-                  <CardContent sx={{ p: 0 }}>
-                    {transactionFilteredRecords.length === 0 ? (
-                      <Box sx={{ p: 3, textAlign: 'center', color: 'grey.500' }}><Typography variant="body2">{transactionSearch ? 'No transactions found' : 'Enter a transaction number to search'}</Typography></Box>
-                    ) : (
-                      <Stack spacing={1}>
-                        {transactionFilteredRecords.map((record) => (
-                          <Card key={record.cash_assistance_id} sx={{ boxShadow: 0, '&:hover': { boxShadow: 1 }, transition: 'box-shadow 0.2s', borderLeft: 3, borderColor: 'primary.main' }}>
-                            <CardContent sx={{ p: 1.5 }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <Box sx={{ flex: 1 }}>
-                                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>{record.full_name}</Typography>
-                                  <Typography variant="caption" sx={{ color: 'primary.main', display: 'block', mb: 0.5, fontWeight: 600 }}>{record.transaction_number}</Typography>
-                                  <Typography variant="caption" sx={{ color: 'grey.600', display: 'block', mb: 0.5 }}>{record.address}</Typography>
-                                  <Typography variant="caption" sx={{ color: 'grey.400', fontSize: '0.625rem' }}>Issued: {formatDateDisplay(record.date_issued)}</Typography>
+                <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
+                  {transactionFilteredRecords.length === 0 ? (
+                    <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
+                      <ReceiptIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                      <Typography variant="h6" gutterBottom>
+                        No transactions found
+                      </Typography>
+                      <Typography variant="body2">
+                        Enter a transaction number to search
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    <Stack spacing={2}>
+                      {transactionFilteredRecords.map((record) => (
+                        <Card key={record.cash_assistance_id} sx={{
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          borderLeft: 4,
+                          borderColor: "secondary.main",
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5, color: "#000000" }}>
+                                  {record.full_name}
+                                </Typography>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                                  <Chip
+                                    label={record.transaction_number}
+                                    size="small"
+                                    color="secondary"
+                                    variant="outlined"
+                                  />
                                 </Box>
-                                <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
-                                  <IconButton size="small" onClick={()=>handleView(record)} sx={{ color: 'info.main', '&:hover': { bgcolor: 'info.lighter' }, p: 0.75 }} title="View"><EyeIcon sx={{ fontSize: 16 }} /></IconButton>
-                                  <IconButton size="small" onClick={()=>handleEdit(record)} sx={{ color: 'success.main', '&:hover': { bgcolor: 'success.lighter' }, p: 0.75 }} title="Edit"><EditIcon sx={{ fontSize: 16 }} /></IconButton>
-                                </Box>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                  {record.address}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Issued: {formatDateDisplay(record.date_issued)}
+                                </Typography>
                               </Box>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </Stack>
-                    )}
-                  </CardContent>
-                </Card>
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Tooltip title="View">
+                                  <IconButton
+                                    size="small"
+                                    onClick={()=>handleView(record)}
+                                    color="primary"
+                                  >
+                                    <EyeIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Edit">
+                                  <IconButton
+                                    size="small"
+                                    onClick={()=>handleEdit(record)}
+                                    color="success"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
               </Box>
             )}
-          </Paper>
-        </Container>
+          </Box>
+        </Box>
+
+        {/* FLOATING ACTION BUTTON FOR MOBILE */}
+        {isMobile && activeTab !== "form" && (
+          <Fab
+            color="primary"
+            aria-label="add"
+            sx={{
+              position: 'absolute',
+              bottom: 16,
+              right: 16,
+            }}
+            onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }}
+          >
+            <AddIcon />
+          </Fab>
+        )}
       </Box>
 
-      {/* QR Details Dialog (for unsaved/draft view) */}
-      <Dialog open={qrDialogOpen} onClose={() => setQrDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>Certificate Details</DialogTitle>
+      {/* QR Code Details Dialog */}
+      <Dialog
+        open={qrDialogOpen}
+        onClose={() => setQrDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
+          Certificate Details
+        </DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}><Typography variant="body2" sx={{ color: 'grey.600' }}>Certificate ID:</Typography><Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>{display.cash_assistance_id || 'Draft (Not saved)'}</Typography></Grid>
-            <Grid item xs={12} md={6}><Typography variant="body2" sx={{ color: 'grey.600' }}>Transaction Number:</Typography><Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>{display.transaction_number || 'N/A'}</Typography></Grid>
-            <Grid item xs={12} md={6}><Typography variant="body2" sx={{ color: 'grey.600' }}>Full Name:</Typography><Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>{display.full_name}</Typography></Grid>
-            <Grid item xs={12} md={6}><Typography variant="body2" sx={{ color: 'grey.600' }}>Address:</Typography><Typography variant="body1" sx={{ color: 'text.secondary' }}>{display.address}</Typography></Grid>
-            <Grid item xs={12} md={6}><Typography variant="body2" sx={{ color: 'grey.600' }}>Date Issued:</Typography><Typography variant="body1" sx={{ color: 'text.secondary' }}>{display.date_issued ? formatDateDisplay(display.date_issued) : 'N/A'}</Typography></Grid>
-            <Grid item xs={12}><Typography variant="body2" sx={{ color: 'grey.600' }}>Request Reason:</Typography><Typography variant="body1" sx={{ color: 'text.secondary' }}>{display.request_reason}</Typography></Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Certificate ID:
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                {display.cash_assistance_id || 'Draft (Not yet saved)'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Transaction Number:
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                {display.transaction_number || 'N/A'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Full Name:
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                {display.full_name}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Address:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.address}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Since Year:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.sinceYear}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Date Issued:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {formatDateDisplay(display.date_issued)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Request Reason:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.request_reason}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Date Created:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.date_created
+                  ? formatDateTimeDisplay(display.date_created)
+                  : 'N/A'}
+              </Typography>
+            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setQrDialogOpen(false)}>Close</Button>
+          <Button onClick={() => setQrDialogOpen(false)} color="primary">
+            Close
+          </Button>
+          {display.cash_assistance_id && (
+            <Button
+              onClick={() => {
+                const verificationUrl = `${window.location.origin}/verify-certificate?id=${display.cash_assistance_id}`;
+                window.open(verificationUrl, '_blank');
+                setQrDialogOpen(false);
+              }}
+              variant="contained"
+              color="primary"
+            >
+              Go to Verification Page
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </ThemeProvider>

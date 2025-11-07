@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import QRCode from 'qrcode';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { useNavigate } from 'react-router-dom';
 import CaloocanLogo from '../../assets/CaloocanLogo.png';
 import Logo145 from '../../assets/Logo145.png';
 import BagongPilipinas from '../../assets/BagongPilipinas.png';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import WordName from '../../assets/WordName.png';
 
-// Import Material UI components at the top of your file
+// Import Material UI components
 import {
   Container,
   Paper,
@@ -31,6 +34,14 @@ import {
   DialogActions,
   Tabs,
   Tab,
+  createTheme,
+  ThemeProvider,
+  Avatar,
+  Badge,
+  Tooltip,
+  Fab,
+  AppBar,
+  Toolbar,
   Autocomplete,
 } from '@mui/material';
 import {
@@ -42,17 +53,163 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Description as FileTextIcon,
+  QrCodeScanner as QrCodeIcon,
   Receipt as ReceiptIcon,
   Print as PrintIcon,
+  ZoomIn as ZoomInIcon,
+  ZoomOut as ZoomOutIcon,
+  RestartAlt as ResetIcon,
+  Folder as FolderIcon,
+  Dashboard as DashboardIcon,
+  Article as ArticleIcon,
   PersonAdd as PersonAddIcon,
   Remove as RemoveIcon,
 } from '@mui/icons-material';
-import ZoomInIcon from '@mui/icons-material/ZoomIn';
-import ZoomOutIcon from '@mui/icons-material/ZoomOut';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import { useMediaQuery } from '@mui/material';
+
+// Define the custom theme (same as Permit to Travel)
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#41644A', // Darker green from palette
+      light: '#A0B2A6', // Lighter shade for hover/focus
+      dark: '#0D4715', // Even darker green for strong accents
+    },
+    secondary: {
+      main: '#E9762B', // Orange from palette for highlighting
+    },
+    success: {
+      main: '#41644A', // Darker green from palette
+      light: '#A0B2A6',
+      dark: '#0D4715',
+    },
+    background: {
+      default: '#F1F0E9', // Off-white/light beige
+      paper: '#FFFFFF',
+    },
+    text: {
+      primary: '#000000', // Black for main text
+      secondary: '#41644A', // Another shade for secondary text
+    },
+    error: {
+      main: '#E9762B',
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: 8,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          '&:hover': {
+            boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+          },
+        },
+        containedPrimary: {
+          background: 'linear-gradient(45deg, #41644A 30%, #527D60 90%)',
+        },
+        containedSecondary: {
+          background: 'linear-gradient(45deg, #E9762B 30%, #F4944D 90%)',
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+          },
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          minHeight: 48,
+          color: '#000000',
+          '&.Mui-selected': {
+            color: '#41644A',
+          },
+        },
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          color: '#000000',
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          color: '#000000',
+          '&.Mui-focused': {
+            color: '#41644A',
+          },
+        },
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          color: '#000000',
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#000000',
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#41644A',
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#41644A',
+          },
+        },
+      },
+    },
+    MuiAutocomplete: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#000000',
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#41644A',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#41644A',
+            },
+          },
+        },
+      },
+    },
+  },
+});
 
 export default function SoloParentForm() {
   const apiBase = 'http://localhost:5000';
+  const navigate = useNavigate();
 
   const [records, setRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -61,10 +218,13 @@ export default function SoloParentForm() {
   const [activeTab, setActiveTab] = useState('form');
   const [searchTerm, setSearchTerm] = useState('');
   const [transactionSearch, setTransactionSearch] = useState('');
-
-  const [zoomLevel, setZoomLevel] = useState(0.75);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [residents, setResidents] = useState([]);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(0.75); // Default zoom level
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [formData, setFormData] = useState({
     name: '',
@@ -75,6 +235,7 @@ export default function SoloParentForm() {
     employmentStatus: '',
     employmentRemarks: '',
     dateIssued: new Date().toISOString().split('T')[0],
+    transaction_number: '', // New field for transaction number
   });
 
   const [children, setChildren] = useState([]);
@@ -84,32 +245,19 @@ export default function SoloParentForm() {
   const genderOptions = ['Male', 'Female', 'Others'];
   const relationshipOptions = ['Son', 'Daughter', 'Others'];
 
-  // ---------- HELPERS ----------
-  function formatDate(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const day = date.getDate();
-    const month = date.toLocaleString('en-US', { month: 'long' });
-    const year = date.getFullYear();
-    const getOrdinal = (n) => {
-      if (n > 3 && n < 21) return 'th';
-      switch (n % 10) {
-        case 1:
-          return 'st';
-        case 2:
-          return 'nd';
-        case 3:
-          return 'rd';
-        default:
-          return 'th';
-      }
-    };
-    return `${day}${getOrdinal(day)} day of ${month}, ${year}`;
-  }
-
+  // Helper function to format date consistently without timezone issues
   function formatDateDisplay(dateString) {
     if (!dateString) return '';
-    const [year, month, day] = dateString.split('-');
+
+    // Extract just the date part if it's a datetime string
+    const dateOnly = dateString.includes('T')
+      ? dateString.split('T')[0]
+      : dateString;
+
+    // Parse the date components
+    const [year, month, day] = dateOnly.split('-');
+
+    // Format as month name, day, year
     const monthNames = [
       'January',
       'February',
@@ -124,89 +272,120 @@ export default function SoloParentForm() {
       'November',
       'December',
     ];
+
     return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`;
   }
 
+  // Helper function to format date and time
+  function formatDateTimeDisplay(dateString) {
+    if (!dateString) return '';
+
+    // Create a new Date object from the string
+    const date = new Date(dateString);
+
+    // Format as month name, day, year, time
+    const monthNames = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    const month = monthNames[date.getMonth()];
+    const day = date.getDate();
+    const year = date.getFullYear();
+
+    // Format time with AM/PM
+    let hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+
+    return `${month} ${day}, ${year} ${hours}:${minutes} ${ampm}`;
+  }
+
+  // Helper function to calculate age from date string
   function calculateAge(dateString) {
     if (!dateString) return '';
+
     const [year, month, day] = dateString.split('-');
-    const birthDate = new Date(year, month - 1, day);
+    const birthDate = new Date(
+      parseInt(year),
+      parseInt(month) - 1,
+      parseInt(day)
+    );
     const today = new Date();
+
     let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
     return age.toString();
   }
 
-  function numberToWords(num) {
-    if (!num) return '';
-    const ones = [
-      '',
-      'One',
-      'Two',
-      'Three',
-      'Four',
-      'Five',
-      'Six',
-      'Seven',
-      'Eight',
-      'Nine',
-      'Ten',
-      'Eleven',
-      'Twelve',
-      'Thirteen',
-      'Fourteen',
-      'Fifteen',
-      'Sixteen',
-      'Seventeen',
-      'Eighteen',
-      'Nineteen',
-    ];
-    const tens = [
-      '',
-      '',
-      'Twenty',
-      'Thirty',
-      'Forty',
-      'Fifty',
-      'Sixty',
-      'Seventy',
-      'Eighty',
-      'Ninety',
-    ];
-
-    if (num < 20) return ones[num];
-    if (num < 100)
-      return (
-        tens[Math.floor(num / 10)] + (num % 10 ? ` ${ones[num % 10]}` : '')
-      );
-    if (num < 1000)
-      return (
-        ones[Math.floor(num / 100)] +
-        ' Hundred' +
-        (num % 100 ? ` ${numberToWords(num % 100)}` : '')
-      );
-    return num.toString();
+  // Generate a unique transaction number
+  function generateTransactionNumber() {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const random =
+      Math.floor(Math.random() * 900) +
+      (100) // 3-digit random number
+        .toString()
+        .padStart(3, '0');
+    return `SP-${year}${month}${day}-${random}`;
   }
 
-  // ---------- API / CRUD ----------
-  // ---------- LOAD RESIDENT RECORDS ----------
+  // Store certificate data in localStorage for QR code verification
+  function storeCertificateData(certificateData) {
+    if (!certificateData.id) return;
+
+    // Get existing certificates from localStorage
+    const existingCertificates = JSON.parse(
+      localStorage.getItem('certificates') || '{}'
+    );
+
+    // Add or update the certificate
+    existingCertificates[certificateData.id] = certificateData;
+
+    // Store back to localStorage
+    localStorage.setItem('certificates', JSON.stringify(existingCertificates));
+  }
+
   async function loadResidents() {
     try {
       const res = await fetch(`${apiBase}/residents`);
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setResidents(data);
-      } else {
-        setResidents([]);
-      }
-    } catch (err) {
-      console.error('Failed to fetch residents:', err);
+      // Format dates properly when loading residents - extract only YYYY-MM-DD
+      const formattedResidents = data.map((resident) => ({
+        ...resident,
+        dob: resident.dob ? resident.dob.split('T')[0] : '',
+      }));
+      setResidents(formattedResidents);
+    } catch (e) {
+      console.error(e);
     }
   }
 
   useEffect(() => {
     loadResidents();
+    loadRecords();
   }, []);
 
   async function loadRecords() {
@@ -228,17 +407,15 @@ export default function SoloParentForm() {
               employmentRemarks: r.employment_remarks || '',
               dateIssued: r.date_issued?.slice(0, 10) || '',
               dateCreated: r.date_created,
+              transaction_number:
+                r.transaction_number || generateTransactionNumber(), // Generate if missing
             }))
           : []
       );
     } catch (e) {
-      console.error('loadRecords error', e);
+      console.error(e);
     }
   }
-
-  useEffect(() => {
-    loadRecords();
-  }, []);
 
   async function loadChildren(soloParentId) {
     try {
@@ -264,6 +441,62 @@ export default function SoloParentForm() {
     }
   }
 
+  const display = useMemo(() => {
+    if (editingId || isFormOpen) return formData;
+    if (selectedRecord) return selectedRecord;
+    return formData;
+  }, [editingId, isFormOpen, selectedRecord, formData]);
+
+  // Generate QR code with URL for PDF download
+  useEffect(() => {
+    const generateQRCode = async () => {
+      if (display.id || display.name) {
+        // Store the certificate data in localStorage
+        storeCertificateData(display);
+
+        // Create a URL that points to a verification page
+        // Using window.location.origin to get the current domain
+        const verificationUrl = `${
+          window.location.origin
+        }/verify-solo-parent?id=${display.id || 'draft'}`;
+
+        const qrContent = `CERTIFICATE VERIFICATION:
+        𝗧𝗿𝗮𝗻𝘀𝗮𝗰𝘁𝗶𝗼𝗻 𝗡𝗼: ${display.transaction_number || 'N/A'}
+        Name: ${display.name}
+        Date Issued: ${
+        display.dateCreated
+        ? formatDateTimeDisplay(display.dateCreated)
+        : new Date().toLocaleString()
+        }
+        Document Type: Solo Parent Certification
+       
+        Ⓒ RRMS | BARANGAY 145
+        CALOOCAN CITY
+        ALL RIGHTS RESERVED
+        `;
+
+        try {
+          const qrUrl = await QRCode.toDataURL(qrContent, {
+            width: 140,
+            margin: 1,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF',
+            },
+            errorCorrectionLevel: 'L',
+          });
+          setQrCodeUrl(qrUrl);
+        } catch (err) {
+          console.error('Failed to generate QR code:', err);
+        }
+      } else {
+        setQrCodeUrl('');
+      }
+    };
+
+    generateQRCode();
+  }, [display]);
+
   function toServerPayload(data) {
     return {
       resident_id: data.resident_id || null,
@@ -277,6 +510,7 @@ export default function SoloParentForm() {
       employment_status: data.employmentStatus || null,
       employment_remarks: data.employmentRemarks || null,
       date_issued: data.dateIssued,
+      transaction_number: data.transaction_number, // Include transaction number
     };
   }
 
@@ -295,10 +529,18 @@ export default function SoloParentForm() {
 
   async function handleCreate() {
     try {
+      // Generate a transaction number for new certificates
+      const transactionNumber = generateTransactionNumber();
+      const updatedFormData = {
+        ...formData,
+        transaction_number: transactionNumber,
+        dateCreated: new Date().toISOString(), // Add current timestamp
+      };
+
       const res = await fetch(`${apiBase}/solo-parent-records`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(formData)),
+        body: JSON.stringify(toServerPayload(updatedFormData)),
       });
       if (!res.ok) throw new Error('Create failed');
       const created = await res.json();
@@ -314,16 +556,20 @@ export default function SoloParentForm() {
       }
 
       const newRec = {
-        ...formData,
+        ...updatedFormData,
         id: soloParentId,
-        dateCreated: new Date().toISOString(),
       };
+
       setRecords([newRec, ...records]);
       setSelectedRecord(newRec);
+
+      // Store the new certificate data
+      storeCertificateData(newRec);
+
       resetForm();
       setActiveTab('records');
     } catch (e) {
-      console.error('handleCreate error', e);
+      console.error(e);
       alert('Failed to create record');
     }
   }
@@ -347,12 +593,24 @@ export default function SoloParentForm() {
       const updated = { ...formData, id: editingId };
       setRecords(records.map((r) => (r.id === editingId ? updated : r)));
       setSelectedRecord(updated);
+
+      // Store the updated certificate data
+      storeCertificateData(updated);
+
       resetForm();
       setActiveTab('records');
     } catch (e) {
-      console.error('handleUpdate error', e);
+      console.error(e);
       alert('Failed to update record');
     }
+  }
+
+  function handleEdit(record) {
+    setFormData({ ...record });
+    setEditingId(record.id);
+    setIsFormOpen(true);
+    setActiveTab('form');
+    loadChildren(record.id);
   }
 
   async function handleDelete(id) {
@@ -364,38 +622,29 @@ export default function SoloParentForm() {
       if (!res.ok) throw new Error('Delete failed');
       setRecords(records.filter((r) => r.id !== id));
       if (selectedRecord?.id === id) setSelectedRecord(null);
+
+      // Remove from localStorage
+      const existingCertificates = JSON.parse(
+        localStorage.getItem('certificates') || '{}'
+      );
+      delete existingCertificates[id];
+      localStorage.setItem(
+        'certificates',
+        JSON.stringify(existingCertificates)
+      );
     } catch (e) {
-      console.error('handleDelete error', e);
+      console.error(e);
       alert('Failed to delete record');
     }
   }
 
-  async function handleView(record) {
-    setSelectedRecord(record);
-    setFormData({ 
-      ...record,
-      employmentStatus: record.employmentStatus || '',
-      employmentRemarks: record.employmentRemarks || '',
-    });
-    setEditingId(record.id);
-    setIsFormOpen(true);
+  function handleView(record) {
+    setSelectedRecord(record); // Set selected record for display
+    setFormData({ ...record }); // Also populate form data for QR generation/dialog
+    setEditingId(record.id); // To indicate viewing a specific record
+    setIsFormOpen(true); // Keep the form open with the record details
     setActiveTab('form');
-    
-    // Load children data
-    await loadChildren(record.id);
-  }
-
-  async function handleEdit(record) {
-    setSelectedRecord(record);
-    setFormData({
-      ...record,
-      employmentStatus: record.employmentStatus || '',
-      employmentRemarks: record.employmentRemarks || '',
-    });
-    setEditingId(record.id);
-    setIsFormOpen(true);
-    setActiveTab('form');
-    await loadChildren(record.id);
+    loadChildren(record.id);
   }
 
   function resetForm() {
@@ -408,11 +657,12 @@ export default function SoloParentForm() {
       employmentStatus: '',
       employmentRemarks: '',
       dateIssued: new Date().toISOString().split('T')[0],
+      transaction_number: '',
     });
     setChildren([]);
     setEditingId(null);
     setIsFormOpen(false);
-    setSelectedRecord(null);
+    setSelectedRecord(null); // Clear selected record
   }
 
   function handleSubmit() {
@@ -420,35 +670,63 @@ export default function SoloParentForm() {
     else handleCreate();
   }
 
-  // ---------- PDF + Print ----------
+  const filteredRecords = useMemo(
+    () =>
+      records.filter(
+        (r) =>
+          r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (r.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (r.contactNo || '').includes(searchTerm)
+      ),
+    [records, searchTerm]
+  );
+
+  // Filter records by transaction number
+  const transactionFilteredRecords = useMemo(
+    () =>
+      records.filter((r) =>
+        r.transaction_number
+          .toLowerCase()
+          .includes(transactionSearch.toLowerCase())
+      ),
+    [records, transactionSearch]
+  );
+
+  // Generate PDF function
   async function generatePDF() {
-    // Must save record first before exporting ideally
-    if (!selectedRecord?.id && !editingId) {
+    if (!display.id) {
       alert('Please save the record first before downloading PDF');
       return;
     }
 
     setIsGeneratingPDF(true);
+
     try {
       const certificateElement = document.getElementById('certificate-preview');
+
       // --- 1. Remove the zoom (scale) from the preview's parent while exporting ---
       const parentOfPreview = certificateElement.parentNode;
       const prevTransform = parentOfPreview.style.transform;
       const prevTransformOrigin = parentOfPreview.style.transformOrigin;
+
       parentOfPreview.style.transform = 'scale(1)';
       parentOfPreview.style.transformOrigin = 'top center';
+
       // --- 2. Wait a short moment for layout to apply ---
       await new Promise((resolve) => setTimeout(resolve, 150));
+
       // --- 3. Capture crisp certificate at high scale ---
       const canvas = await html2canvas(certificateElement, {
-        scale: 3,
+        scale: 3, // High scale for better quality
         useCORS: true,
-        backgroundColor: '#ffffff',
         logging: false,
+        backgroundColor: '#ffffff',
       });
+
       // --- 4. Restore zoom to preview ---
       parentOfPreview.style.transform = prevTransform;
       parentOfPreview.style.transformOrigin = prevTransformOrigin;
+
       // --- 5. Output the PDF at 8.5x11 inches (US Letter) ---
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
@@ -457,40 +735,11 @@ export default function SoloParentForm() {
         format: [8.5, 11],
       });
       pdf.addImage(imgData, 'PNG', 0, 0, 8.5, 11);
-      // Metadata / verification page
-      pdf.addPage();
-      pdf.setFontSize(18);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('Certificate Verification Information', 0.5, 0.75);
-      pdf.setLineWidth(0.02);
-      pdf.line(0.5, 0.85, 8, 0.85);
-      pdf.setFontSize(12);
-      pdf.setFont(undefined, 'normal');
-      const display = selectedRecord || formData;
-      const createdDate = display.dateCreated
-        ? new Date(display.dateCreated).toLocaleString()
-        : new Date().toLocaleString();
-      const details = [
-        `Certificate Type: Solo Parent Certification`,
-        `Certificate ID: ${display.id || 'Draft'}`,
-        `Full Name: ${display.name || ''}`,
-        `Address: ${display.address || ''}`,
-        `Date Issued: ${display.dateIssued || ''}`,
-        `Date Created (E-Signature Applied): ${createdDate}`,
-        ``,
-        `VERIFICATION:`,
-        `Visit: ${window.location.origin}/verify-solo-parent?id=${display.id || 'Draft'}`,
-      ];
-      let yPos = 1.2;
-      const lineHeight = 0.25;
-      details.forEach((line) => {
-        pdf.text(line, 0.5, yPos);
-        yPos += lineHeight;
-      });
-      const fileName = `SoloParent_${(display.name || 'record').replace(/\s+/g, '_')}.pdf`;
+
+      const fileName = `Solo_Parent_${display.id}_${display.name.replace(/\s+/g, '_')}.pdf`;
       pdf.save(fileName);
-    } catch (err) {
-      console.error('generatePDF error', err);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
       alert('Failed to generate PDF. Please try again.');
     } finally {
       setIsGeneratingPDF(false);
@@ -498,49 +747,136 @@ export default function SoloParentForm() {
   }
 
   function handlePrint() {
-    if (!selectedRecord?.id && !editingId) {
+    // Check if there's a certificate to print
+    if (!display.id) {
       alert('Please save the record first before printing');
       return;
     }
 
+    // 1. Get the certificate element
     const certificateElement = document.getElementById('certificate-preview');
-    const certificateHTML = certificateElement.outerHTML;
-    const printWindow = window.open('', '_blank');
+    if (!certificateElement) {
+      alert('Certificate not found for printing.');
+      return;
+    }
 
-    printWindow.document.write(`
+    // 2. Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px'; // Move it way off-screen
+    iframe.style.top = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    document.body.appendChild(iframe);
+
+    // 3. Write the certificate content and styles into the iframe
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.write(`
       <!DOCTYPE html>
       <html>
         <head>
           <title>Print Certificate</title>
           <style>
-            @page { size: 8.5in 11in; margin: 0; }
-            body { margin: 0; padding: 0; font-family: Times, serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
-            #certificate-preview { width: 8.5in; height: 11in; }
-            #certificate-preview * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+            @page {
+              size: 8.5in 11in;
+              margin: 0;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            #certificate-preview {
+              width: 8.5in;
+              height: 11in;
+              position: relative;
+              overflow: hidden;
+              background: white;
+              box-sizing: border-box;
+            }
+            #certificate-preview * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
           </style>
         </head>
         <body>
-          ${certificateHTML}
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = function() { window.close(); }
-            };
-          </script>
+          ${certificateElement.outerHTML}
         </body>
       </html>
     `);
+    iframeDoc.close();
 
-    printWindow.document.close();
+    // 4. Trigger the print dialog once the iframe content is loaded
+    setTimeout(() => {
+      const iframeWindow = iframe.contentWindow || iframe;
+      iframeWindow.focus(); // Required for some browsers
+      iframeWindow.print();
+
+      // 5. Clean up by removing the iframe after the print dialog
+      window.onafterprint = () => {
+        document.body.removeChild(iframe);
+      };
+      // Fallback cleanup in case onafterprint doesn't fire
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    }, 250); // A short delay to render
   }
 
-  // ---------- Zoom Controls ----------
-  const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 0.1, 2));
-  const handleZoomOut = () => setZoomLevel((prev) => Math.max(prev - 0.1, 0.3));
-  const handleResetZoom = () => setZoomLevel(0.75);
+  // Function to handle QR code click
+  const handleQrCodeClick = () => {
+    if (display.id) {
+      // Open the verification URL in a new tab
+      const verificationUrl = `${window.location.origin}/verify-solo-parent?id=${display.id}`;
+      window.open(verificationUrl, '_blank');
+    } else {
+      // Show a dialog with the certificate details (for unsaved draft)
+      setQrDialogOpen(true);
+    }
+  };
+
+  // Function to handle transaction number search
+  const handleTransactionSearch = () => {
+    if (!transactionSearch) return;
+
+    const foundRecord = records.find(
+      (r) =>
+        r.transaction_number.toLowerCase() === transactionSearch.toLowerCase()
+    );
+
+    if (foundRecord) {
+      setSelectedRecord(foundRecord);
+      setFormData({ ...foundRecord }); // Populate form data
+      setEditingId(foundRecord.id); // Indicate viewing/editing
+      setIsFormOpen(true); // Open form view
+      setActiveTab('form'); // Switch to form tab
+      loadChildren(foundRecord.id);
+    } else {
+      alert('No certificate found with this transaction number');
+    }
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel((prev) => Math.min(prev + 0.1, 2)); // Max zoom: 2x (200%)
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel((prev) => Math.max(prev - 0.1, 0.3)); // Min zoom: 0.3x (30%)
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(0.75); // Reset to default
+  };
 
   useEffect(() => {
     const handleKeyPress = (e) => {
+      // Check if Ctrl/Cmd is pressed
       if (e.ctrlKey || e.metaKey) {
         if (e.key === '=' || e.key === '+') {
           e.preventDefault();
@@ -554,49 +890,12 @@ export default function SoloParentForm() {
         }
       }
     };
+
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [zoomLevel]);
 
-  // ---------- Filters ----------
-  const filteredRecords = useMemo(
-    () =>
-      records.filter(
-        (r) =>
-          r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (r.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (r.contactNo || '').includes(searchTerm)
-      ),
-    [records, searchTerm]
-  );
-
-  const transactionFilteredRecords = useMemo(
-    () =>
-      records.filter((r) =>
-        (r.id || '')
-          .toString()
-          .toLowerCase()
-          .includes(transactionSearch.toLowerCase())
-      ),
-    [records, transactionSearch]
-  );
-
-  const handleTransactionSearch = () => {
-    if (!transactionSearch) return;
-    const found = records.find(
-      (r) =>
-        (r.id || '').toString().toLowerCase() ===
-        transactionSearch.toLowerCase()
-    );
-    if (found) {
-      handleView(found);
-      setActiveTab('form');
-    } else {
-      alert('No certificate found with this transaction number');
-    }
-  };
-
-  // ---------- Children Management ----------
+  // Children Management
   const addChild = () => {
     setChildren([
       ...children,
@@ -630,433 +929,478 @@ export default function SoloParentForm() {
     setChildren(updatedChildren);
   };
 
-  // ---------- JSX (left certificate kept largely unchanged) ----------
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.100', display: 'flex' }}>
-      {/* LEFT: Certificate preview */}
-      <Box
-        sx={{
-          flex: 1,
-          overflow: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: 'background.default',
-        }}
-      >
-        {/* Toolbar */}
-        <Box
-          sx={{
-            display: 'flex',
+    <ThemeProvider theme={theme}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', bgcolor: 'background.default' }}>
+        {/* TOP HEADER */}
+        <Paper elevation={2} sx={{ zIndex: 10, borderRadius: 0 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
             justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 2,
-            gap: 1,
             p: 2,
-            bgcolor: 'background.paper',
-            borderBottom: 1,
-            borderColor: 'grey.200',
-          }}
-        >
-          {/* Zoom Controls */}
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 1,
-              alignItems: 'center',
-            }}
-          >
-            <IconButton
-              onClick={handleZoomOut}
-              disabled={zoomLevel <= 0.3}
-              color="primary"
-              sx={{
-                border: '1px solid',
-                borderColor: 'grey.300',
-                '&:hover': {
-                  bgcolor: 'grey.100',
-                },
-              }}
-            >
-              <ZoomOutIcon />
-            </IconButton>
-            <Typography
-              variant="body2"
-              sx={{
-                minWidth: '60px',
-                textAlign: 'center',
-                fontWeight: 600,
-                color: 'grey.700',
-              }}
-            >
-              {Math.round(zoomLevel * 100)}%
-            </Typography>
-            <IconButton
-              onClick={handleZoomIn}
-              disabled={zoomLevel >= 2}
-              color="primary"
-              sx={{
-                border: '1px solid',
-                borderColor: 'grey.300',
-                '&:hover': {
-                  bgcolor: 'grey.100',
-                },
-              }}
-            >
-              <ZoomInIcon />
-            </IconButton>
-            <IconButton
-              onClick={handleResetZoom}
-              color="primary"
-              size="small"
-              sx={{
-                border: '1px solid',
-                borderColor: 'grey.300',
-                '&:hover': {
-                  bgcolor: 'grey.100',
-                },
-              }}
-              title="Reset Zoom"
-            >
-              <RestartAltIcon fontSize="small" />
-            </IconButton>
+            bgcolor: 'primary.main',
+            color: 'white'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar src={Logo145} sx={{ width: 48, height: 48 }} />
+              <Box>
+                <Typography variant="h5" fontWeight="bold">
+                  Solo Parent Certification
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Manage all records of Solo Parent Certification
+                </Typography>
+              </Box>
+            </Box>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Badge badgeContent={records.length} color="secondary">
+                <Chip 
+                  icon={<FolderIcon />}
+                  label="Total Records" 
+                  sx={{ 
+                    bgcolor: "rgba(255,255,255,0.2)", 
+                    color: "white",
+                    fontWeight: 600
+                  }} 
+                />
+              </Badge>
+              
+              <Button 
+                variant="contained" 
+                color="secondary" 
+                startIcon={<AddIcon />} 
+                onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }}
+                sx={{ borderRadius: 20, px: 3 }}
+              >
+                New Certificate
+              </Button>
+            </Box>
           </Box>
 
-          {/* Right-side buttons */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="contained"
-              color="success"
-              onClick={generatePDF}
-              startIcon={<FileTextIcon />}
-              disabled={isGeneratingPDF}
-            >
-              {isGeneratingPDF ? 'Generating PDF...' : 'Download PDF'}
-            </Button>
-            <Button
-              variant="outlined"
-              color="success"
-              startIcon={<PrintIcon />}
-              onClick={handlePrint}
-              disabled={!selectedRecord && !editingId}
-            >
-              Print
-            </Button>
+          {/* NAVIGATION TABS */}
+          <Box sx={{ bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}>
+            <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+              <Tabs 
+                value={activeTab} 
+                onChange={(e, nv) => setActiveTab(nv)} 
+                variant="fullWidth"
+                sx={{ 
+                  "& .MuiTabs-indicator": { height: 3, borderRadius: "3px 3px 0 0" },
+                  minHeight: 48
+                }}
+              >
+                <Tab 
+                  icon={<ArticleIcon />} 
+                  label="Form" 
+                  value="form"
+                  iconPosition="start"
+                />
+                <Tab 
+                  icon={<FolderIcon />} 
+                  label={`Records (${records.length})`} 
+                  value="records"
+                  iconPosition="start"
+                />
+                <Tab 
+                  icon={<ReceiptIcon />} 
+                  label="Transaction" 
+                  value="transaction"
+                  iconPosition="start"
+                />
+              </Tabs>
+            </Box>
           </Box>
-        </Box>
+        </Paper>
 
-        {/* Certificate Preview */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-            flex: 1,
-            overflow: 'auto',
-            padding: '20px 0',
-          }}
-        >
-          <div
-            style={{
-              transform: `scale(${zoomLevel})`,
-              transformOrigin: 'top center',
-            }}
-          >
-            <div
-              id="certificate-preview"
-              style={{
-                position: 'relative',
-                width: '8.5in',
-                height: '11in',
-                boxShadow: '0 0 8px rgba(0,0,0,0.2)',
-                background: '#fff',
-                overflow: 'hidden',
-              }}
-            >
-              {/* Logos */}
-              <img
-                src={CaloocanLogo}
-                alt="City Logo"
-                style={{
-                  position: 'absolute',
-                  width: '90px',
-                  top: '28px',
-                  left: '32px',
-                }}
-              />
-              <img
-                src={Logo145}
-                alt="Barangay Logo"
-                style={{
-                  position: 'absolute',
-                  width: '110px',
-                  top: '26px',
-                  right: '32px',
-                }}
-              />
+        {/* MAIN CONTENT AREA */}
+        <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* LEFT: Certificate preview */}
+          <Box sx={{ 
+            flex: 1, 
+            overflow: 'auto', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            bgcolor: 'background.default',
+            p: 2,
+            [theme.breakpoints.down('lg')]: { display: activeTab === "form" ? 'none' : 'flex' }
+          }}>
+            {/* ZOOM CONTROLS */}
+            <Paper elevation={1} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+              <Box sx={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 1
+              }}>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  <Tooltip title="Zoom Out">
+                    <IconButton onClick={handleZoomOut} color="primary" size="small">
+                      <ZoomOutIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="body2" sx={{ 
+                    minWidth: 60, 
+                    textAlign: "center", 
+                    fontWeight: 600,
+                    px: 1,
+                    py: 0.5,
+                    bgcolor: "background.paper",
+                    borderRadius: 1,
+                    color: "#000000"
+                  }}>
+                    {Math.round(zoomLevel * 100)}%
+                  </Typography>
+                  <Tooltip title="Zoom In">
+                    <IconButton onClick={handleZoomIn} color="primary" size="small">
+                      <ZoomInIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Reset Zoom">
+                    <IconButton onClick={handleResetZoom} color="primary" size="small">
+                      <ResetIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
 
-              {/* Watermark */}
-              <img
-                src={Logo145}
-                alt="Watermark"
-                style={{
-                  position: 'absolute',
-                  top: '200px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  opacity: 0.1,
-                  width: '500px',
-                  height: '500px',
-                  border: '2px dashed #ccc',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                  pointerEvents: 'none',
-                  zIndex: 0,
-                }}
-              />
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Tooltip title="Verify Certificate">
+                    <Button 
+                      variant="outlined" 
+                      color="primary" 
+                      onClick={handleQrCodeClick} 
+                      startIcon={<QrCodeIcon />} 
+                      disabled={!display.id}
+                      size="small"
+                    >
+                      Verify
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Download PDF">
+                    <Button 
+                      variant="contained" 
+                      color="secondary" 
+                      onClick={generatePDF} 
+                      disabled={!display.id || isGeneratingPDF} 
+                      startIcon={<FileTextIcon />}
+                      size="small"
+                    >
+                      {isGeneratingPDF ? "Generating..." : "Download"}
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Print">
+                    <Button 
+                      variant="outlined" 
+                      onClick={handlePrint} 
+                      disabled={!display.id}
+                      startIcon={<PrintIcon />}
+                      size="small"
+                    >
+                      Print
+                    </Button>
+                  </Tooltip>
+                </Box>
+              </Box>
+            </Paper>
 
-              {/* Header */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '70px',
-                  width: '100%',
-                  textAlign: 'center',
-                  fontSize: '14pt',
-                  fontWeight: 'bold',
-                  lineHeight: 1.5,
-                }}
-              >
+            {/* CERTIFICATE PREVIEW */}
+            <Box sx={{ 
+              display: "flex", 
+              justifyContent: "center", 
+              alignItems: "flex-start", 
+              flex: 1, 
+              overflow: "auto",
+              p: 1
+            }}>
+              <Box sx={{ transform: `scale(${zoomLevel})`, transformOrigin: "top center" }}>
                 <div
+                  id="certificate-preview"
                   style={{
-                    fontFamily: 'Lucida Calligraphy, "Times New Roman", serif',
+                    position: 'relative',
+                    width: '8.5in',
+                    height: '11in',
+                    boxShadow: '0 0 8px rgba(0,0,0,0.2)',
+                    background: '#fff',
+                    WebkitPrintColorAdjust: 'exact',
+                    printColorAdjust: 'exact',
+                    colorAdjust: 'exact',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
                   }}
                 >
-                  Republic Of the Philippines
-                </div>
-                <div style={{ fontSize: '13pt' }}>City of Caloocan</div>
-                <div
-                  style={{
-                    fontSize: '12pt',
-                    marginTop: '4px',
-                    fontFamily: 'Bodoni MT Black',
-                  }}
-                >
-                  BARANGAY 145 ZONE 13 DISTRICT 1
-                </div>
-                <div
-                  style={{
-                    fontSize: '11pt',
-                    marginTop: '8px',
-                    fontFamily: 'Bodoni MT Black',
-                  }}
-                >
-                  OFFICE OF THE BARANGAY CAPTAIN
-                </div>
-              </div>
+                  {/* Certificate content */}
+                  <img
+                    style={{
+                      position: 'absolute',
+                      width: '90px',
+                      top: '28px',
+                      left: '32px',
+                    }}
+                    src={CaloocanLogo}
+                    alt="City Logo"
+                  />
+                  <img
+                    style={{
+                      position: 'absolute',
+                      width: '110px',
+                      top: '26px',
+                      right: '32px',
+                    }}
+                    src={Logo145}
+                    alt="Barangay Logo"
+                  />
 
-              {/* Title */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '190px',
-                  width: '100%',
-                  textAlign: 'center',
-                  fontFamily: 'Bodoni MT Black, "Times New Roman", serif',
-                  fontSize: '18pt',
-                  fontWeight: 'bold',
-                  textDecoration: 'underline',
-                  letterSpacing: '1px',
-                }}
-              >
-                BARANGAY CERTIFICATION
-              </div>
+                  {/* Watermark */}
+                  <img
+                    style={{
+                      position: 'absolute',
+                      top: '200px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      opacity: 0.1,
+                      width: '500px',
+                      height: '500px',
+                      border: '2px dashed #ccc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px',
+                      pointerEvents: 'none',
+                      zIndex: 0,
+                    }}
+                    src={Logo145}
+                    alt="Watermark"
+                  />
 
-              {/* Main Content */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '270px',
-                  left: '60px',
-                  width: '680px',
-                  fontFamily: '"Times New Roman", serif',
-                  fontSize: '12pt',
-                  lineHeight: 1.8,
-                  textAlign: 'justify',
-                  zIndex: 1,
-                }}
-              >
-                <p style={{ marginBottom: '20px' }}>
-                  <strong>
-                    This is to certify that,{' '}
-                    <span
+                  {/* Header */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '70px',
+                      width: '100%',
+                      textAlign: 'center',
+                      fontSize: '14pt',
+                      fontWeight: 'bold',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <div
                       style={{
-                        display: 'inline-block',
-                        minWidth: '180px',
-                        borderBottom: '1px solid black',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        fontStyle: 'italic',
+                        fontFamily: 'Lucida Calligraphy, "Times New Roman", serif',
                       }}
                     >
-                      {(selectedRecord || formData).name || 'Name'}
-                    </span>
-                    ,{' '}
-                    <span
+                      Republic Of the Philippines
+                    </div>
+                    <div style={{ fontSize: '13pt' }}>City of Caloocan</div>
+                    <div
                       style={{
-                        display: 'inline-block',
-                        minWidth: '40px',
-                        borderBottom: '1px solid black',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        fontStyle: 'italic',
+                        fontSize: '12pt',
+                        marginTop: '4px',
+                        fontFamily: 'Bodoni MT Black',
                       }}
                     >
-                      {(selectedRecord || formData).age || 'Age'}
-                    </span>{' '}
-                    y/o is a Bonafide resident of{' '}
-                    <span
+                      BARANGAY 145 ZONE 13 DISTRICT 1
+                    </div>
+                    <div
                       style={{
-                        display: 'inline-block',
-                        minWidth: '250px',
-                        borderBottom: '1px solid black',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
+                        fontSize: '11pt',
+                        marginTop: '8px',
+                        fontFamily: 'Bodoni MT Black',
                       }}
                     >
-                      {(selectedRecord || formData).address || 'Address'}
-                    </span>{' '}
-                    Barangay 145 of this city, since{' '}
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        minWidth: '80px',
-                        borderBottom: '1px solid black',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                      }}
-                    >
-                      {(selectedRecord || formData).residentsSinceYear || 'Year'}
-                    </span>
-                    .
-                  </strong>
-                </p>
+                      OFFICE OF THE BARANGAY CAPTAIN
+                    </div>
+                  </div>
 
-                <p style={{ marginBottom: '20px' }}>
-                  <strong>
-                    Upon verification, she is currently not in any form of
-                    relationship and is qualified to apply for a Solo Parent ID
-                    based on the classification set forth by RA 8972, otherwise
-                    known as the Solo Parents Welfare Act 2000.
-                  </strong>
-                </p>
+                  {/* Title */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '190px',
+                      width: '100%',
+                      textAlign: 'center',
+                      fontFamily: 'Bodoni MT Black, "Times New Roman", serif',
+                      fontSize: '18pt',
+                      fontWeight: 'bold',
+                      textDecoration: 'underline',
+                      letterSpacing: '1px',
+                    }}
+                  >
+                    BARANGAY CERTIFICATION
+                  </div>
 
-                <p style={{ marginBottom: '20px' }}>
-                  <strong>
-                    Ms.{' '}
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        minWidth: '180px',
-                        borderBottom: '1px solid black',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      {(selectedRecord || formData).name || 'Name'}
-                    </span>
-                    , is UNWED, since,{' '}
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        minWidth: '80px',
-                        borderBottom: '1px solid black',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                      }}
-                    >
-                      {(selectedRecord || formData).unwedSinceYear || 'Year'}
-                    </span>
-                    .
-                  </strong>
-                </p>
+                  {/* Main Content */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '270px',
+                      left: '60px',
+                      width: '680px',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                      lineHeight: 1.8,
+                      textAlign: 'justify',
+                      zIndex: 1,
+                    }}
+                  >
+                    <p style={{ marginBottom: '20px' }}>
+                      <strong>
+                        This is to certify that,{' '}
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '180px',
+                            borderBottom: '1px solid black',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          {display.name || 'Name'}
+                        </span>
+                        ,{' '}
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '40px',
+                            borderBottom: '1px solid black',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          {display.age || 'Age'}
+                        </span>{' '}
+                        y/o is a Bonafide resident of{' '}
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '250px',
+                            borderBottom: '1px solid black',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {display.address || 'Address'}
+                        </span>{' '}
+                        Barangay 145 of this city, since{' '}
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '80px',
+                            borderBottom: '1px solid black',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {display.residentsSinceYear || 'Year'}
+                        </span>
+                        .
+                      </strong>
+                    </p>
 
-                <p style={{ marginBottom: '20px' }}>
-                  <strong>
-                    Moreover{' '}
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        minWidth: '180px',
-                        borderBottom: '1px solid black',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      {(selectedRecord || formData).name || 'Name'}
-                    </span>{' '}
-                    has{' '}
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        minWidth: '30px',
-                        borderBottom: '1px solid black',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                      }}
-                    >
-                      {children.length || '___'}
-                    </span>{' '}
-                    qualified dependent living with her
-                    {children.length > 0 && (
-                      <>
-                        :{' '}
-                        {children.map((child, index) => (
-                          <span key={child.id || index}>
-                            {index > 0 && ', '}
-                            her{' '}
-                            <span
-                              style={{
-                                display: 'inline-block',
-                                minWidth: '120px',
-                                borderBottom: '1px solid black',
-                                fontWeight: 'bold',
-                                textAlign: 'center',
-                                fontStyle: 'italic',
-                              }}
-                            >
-                              {child.name || 'Child Name'}
-                            </span>
-                            ,{' '}
-                            <span
-                              style={{
-                                display: 'inline-block',
-                                minWidth: '30px',
-                                borderBottom: '1px solid black',
-                                fontWeight: 'bold',
-                                textAlign: 'center',
-                              }}
-                            >
-                              {child.age || 'Age'}
-                            </span>{' '}
-                            y/o, birthday-
-                            <span
-                              style={{
-                                display: 'inline-block',
-                                minWidth: '100px',
-                                borderBottom: '1px solid black',
-                                fontWeight: 'bold',
-                                textAlign: 'center',
-                              }}
-                            >
-                              {child.birthday || 'Birthday'}
-                            </span>
-                            {child.level && (
-                              <>
+                    <p style={{ marginBottom: '20px' }}>
+                      <strong>
+                        Upon verification, she is currently not in any form of
+                        relationship and is qualified to apply for a Solo Parent ID
+                        based on the classification set forth by RA 8972, otherwise
+                        known as the Solo Parents Welfare Act 2000.
+                      </strong>
+                    </p>
+
+                    <p style={{ marginBottom: '20px' }}>
+                      <strong>
+                        Ms.{' '}
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '180px',
+                            borderBottom: '1px solid black',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          {display.name || 'Name'}
+                        </span>
+                        , is UNWED, since,{' '}
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '80px',
+                            borderBottom: '1px solid black',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {display.unwedSinceYear || 'Year'}
+                        </span>
+                        .
+                      </strong>
+                    </p>
+
+                    <p style={{ marginBottom: '20px' }}>
+                      <strong>
+                        Moreover{' '}
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '180px',
+                            borderBottom: '1px solid black',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          {display.name || 'Name'}
+                        </span>{' '}
+                        has{' '}
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '30px',
+                            borderBottom: '1px solid black',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {children.length || '___'}
+                        </span>{' '}
+                        qualified dependent living with her
+                        {children.length > 0 && (
+                          <>
+                            :{' '}
+                            {children.map((child, index) => (
+                              <span key={child.id || index}>
+                                {index > 0 && ', '}
+                                her{' '}
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    minWidth: '120px',
+                                    borderBottom: '1px solid black',
+                                    fontWeight: 'bold',
+                                    textAlign: 'center',
+                                    fontStyle: 'italic',
+                                  }}
+                                >
+                                  {child.name || 'Child Name'}
+                                </span>
                                 ,{' '}
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    minWidth: '30px',
+                                    borderBottom: '1px solid black',
+                                    fontWeight: 'bold',
+                                    textAlign: 'center',
+                                  }}
+                                >
+                                  {child.age || 'Age'}
+                                </span>{' '}
+                                y/o, birthday-
                                 <span
                                   style={{
                                     display: 'inline-block',
@@ -1066,488 +1410,408 @@ export default function SoloParentForm() {
                                     textAlign: 'center',
                                   }}
                                 >
-                                  {child.level}
+                                  {child.birthday || 'Birthday'}
                                 </span>
-                              </>
-                            )}
-                          </span>
-                        ))}
-                      </>
+                                {child.level && (
+                                  <>
+                                    ,{' '}
+                                    <span
+                                      style={{
+                                        display: 'inline-block',
+                                        minWidth: '100px',
+                                        borderBottom: '1px solid black',
+                                        fontWeight: 'bold',
+                                        textAlign: 'center',
+                                      }}
+                                    >
+                                      {child.level}
+                                    </span>
+                                  </>
+                                )}
+                              </span>
+                            ))}
+                          </>
+                        )}
+                        .
+                      </strong>
+                    </p>
+
+                    <p style={{ marginBottom: '20px' }}>
+                      <strong>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '180px',
+                            borderBottom: '1px solid black',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          {display.name || 'Name'}
+                        </span>{' '}
+                        is{' '}
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '120px',
+                            borderBottom: '1px solid black',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {display.employmentStatus === 'Others' 
+                            ? display.employmentRemarks || 'Employment Status'
+                            : display.employmentStatus || 'Employment Status'
+                          }
+                        </span>
+                        .
+                      </strong>
+                    </p>
+
+                    <p style={{ marginBottom: '30px' }}>
+                      <strong>
+                        This certification is issued solely for the purpose of
+                        authentication of Ms.{' '}
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '180px',
+                            borderBottom: '1px solid black',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          {display.name || 'Name'}
+                        </span>
+                        , qualification to apply for a Solo Parent ID and receive all
+                        benefits that go with it.
+                      </strong>
+                    </p>
+
+                    <p style={{ marginBottom: '40px' }}>
+                      <strong>
+                        Issued this{' '}
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '150px',
+                            borderBottom: '1px solid black',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          {display.dateIssued
+                            ? (() => {
+                                const date = new Date(display.dateIssued);
+                                const day = date.getDate();
+                                const month = date.toLocaleString('default', { month: 'long' });
+                                const year = date.getFullYear();
+                                const suffix = day % 10 === 1 && day !== 11 ? 'st' : day % 10 === 2 && day !== 12 ? 'nd' : day % 10 === 3 && day !== 13 ? 'rd' : 'th';
+                                return `${day}${suffix} day of ${month}, ${year}`;
+                              })()
+                            : '__________________'}
+                        </span>
+                        .
+                      </strong>
+                    </p>
+                  </div>
+
+                  {/* Bottom Section */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '80px',
+                      left: '60px',
+                      width: '680px',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    <div style={{ marginBottom: '50px' }}>
+                      Brgy. SOLO PARENT Focal Person/Barangay Officials
+                    </div>
+
+                    {/* Signatures */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginTop: '50px',
+                      }}
+                    >
+                      <div style={{ textAlign: 'center', width: '300px' }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>
+                          ROSALINA P. ANORE
+                        </div>
+                        <div
+                          style={{
+                            borderTop: '1px solid #000',
+                            width: '80%',
+                            margin: '0 auto 8px auto',
+                          }}
+                        ></div>
+                        <div style={{ fontWeight: 'bold' }}>Brgy. Secretary</div>
+                      </div>
+
+                      <div style={{ textAlign: 'center', width: '300px' }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>
+                          ARNOLD DONDONAYOS
+                        </div>
+                        <div
+                          style={{
+                            borderTop: '1px solid #000',
+                            width: '80%',
+                            margin: '0 auto 8px auto',
+                          }}
+                        ></div>
+                        <div style={{ fontWeight: 'bold' }}>Barangay Captain</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* QR Code */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '150px',
+                      right: '60px',
+                      textAlign: 'center',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '10pt',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    {qrCodeUrl && (
+                      <div style={{ marginTop: 12 }}>
+                        <div
+                          onClick={handleQrCodeClick}
+                          style={{
+                            cursor: 'pointer',
+                            position: 'relative',
+                            display: 'inline-block',
+                          }}
+                          title="Click to view certificate details"
+                        >
+                          <img
+                            src={qrCodeUrl}
+                            alt="Verification QR Code"
+                            style={{
+                              width: '130px',
+                              height: '130px',
+                              border: '2px solid #000',
+                              padding: '5px',
+                              background: '#fff',
+                            }}
+                          />
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: 'rgba(255,255,255,0)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: 0,
+                              transition: 'opacity 0.3s',
+                              borderRadius: '4px',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.opacity = '0.7';
+                              e.currentTarget.style.backgroundColor =
+                                'rgba(255,255,255,0.8)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.opacity = '0';
+                              e.currentTarget.style.backgroundColor =
+                                'rgba(255,255,255,0)';
+                            }}
+                          >
+                            <QrCodeIcon
+                              sx={{
+                                fontSize: 40,
+                                color: theme.palette.success.main,
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '8pt',
+                            color: '#666',
+                            marginTop: '5px',
+                            fontWeight: 'normal',
+                          }}
+                        >
+                          {display.dateCreated
+                            ? formatDateTimeDisplay(display.dateCreated)
+                            : new Date().toLocaleString()}
+                        </div>
+                      </div>
                     )}
-                    .
-                  </strong>
-                </p>
-
-                <p style={{ marginBottom: '20px' }}>
-                  <strong>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        minWidth: '180px',
-                        borderBottom: '1px solid black',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      {(selectedRecord || formData).name || 'Name'}
-                    </span>{' '}
-                    is{' '}
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        minWidth: '120px',
-                        borderBottom: '1px solid black',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                      }}
-                    >
-                      {(selectedRecord || formData).employmentStatus === 'Others' 
-                        ? (selectedRecord || formData).employmentRemarks || 'Employment Status'
-                        : (selectedRecord || formData).employmentStatus || 'Employment Status'
-                      }
-                    </span>
-                    .
-                  </strong>
-                </p>
-
-                <p style={{ marginBottom: '30px' }}>
-                  <strong>
-                    This certification is issued solely for the purpose of
-                    authentication of Ms.{' '}
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        minWidth: '180px',
-                        borderBottom: '1px solid black',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      {(selectedRecord || formData).name || 'Name'}
-                    </span>
-                    , qualification to apply for a Solo Parent ID and receive all
-                    benefits that go with it.
-                  </strong>
-                </p>
-
-                <p style={{ marginBottom: '40px' }}>
-                  <strong>
-                    Issued this{' '}
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        minWidth: '150px',
-                        borderBottom: '1px solid black',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      {(selectedRecord || formData).dateIssued
-                        ? formatDate((selectedRecord || formData).dateIssued)
-                        : '__________________'}
-                    </span>
-                    .
-                  </strong>
-                </p>
-              </div>
-
-              {/* Bottom Section */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '80px',
-                  left: '60px',
-                  width: '680px',
-                  fontFamily: '"Times New Roman", serif',
-                  fontSize: '12pt',
-                  fontWeight: 'bold',
-                }}
-              >
-                <div style={{ marginBottom: '50px' }}>
-                  Brgy. SOLO PARENT Focal Person/Barangay Officials
-                </div>
-
-                {/* Signatures */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginTop: '50px',
-                  }}
-                >
-                  <div style={{ textAlign: 'center', width: '300px' }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>
-                      ROSALINA P. ANORE
-                    </div>
-                    <div
-                      style={{
-                        borderTop: '1px solid #000',
-                        width: '80%',
-                        margin: '0 auto 8px auto',
-                      }}
-                    ></div>
-                    <div style={{ fontWeight: 'bold' }}>Brgy. Secretary</div>
-                  </div>
-
-                  <div style={{ textAlign: 'center', width: '300px' }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>
-                      ARNOLD DONDONAYOS
-                    </div>
-                    <div
-                      style={{
-                        borderTop: '1px solid #000',
-                        width: '80%',
-                        margin: '0 auto 8px auto',
-                      }}
-                    ></div>
-                    <div style={{ fontWeight: 'bold' }}>Barangay Captain</div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <style>
-          {`
-      @media print {
-        body * { visibility: hidden; }
-        #certificate-preview, #certificate-preview * { visibility: visible; }
-        #certificate-preview { position: absolute; left: 0; top: 0; width: 8.5in; height: 11in; transform: none !important; }
-        @page { size: portrait; margin: 0; }
-        #certificate-preview * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-      }
-    `}
-        </style>
-      </Box>
-
-      <Container
-        maxWidth={false}
-        sx={{
-          flexGrow: 1,
-          minWidth: '400px',
-          maxWidth: '600px',
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: 'background.default',
-          borderLeft: 1,
-          borderColor: 'grey.300',
-          p: 0,
-        }}
-        disableGutters
-      >
-        <Paper
-          sx={{
-            flexGrow: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            bgcolor: 'background.paper',
-            borderRadius: 0,
-          }}
-        >
-          {/* Sticky Header */}
-          <Paper
-            elevation={0}
-            sx={{
-              position: 'sticky',
-              paddingTop: 5,
-              zIndex: 10,
-              bgcolor: 'rgba(255,255,255,0.9)',
-              backdropFilter: 'blur(8px)',
-              borderBottom: 1,
-              borderColor: 'grey.200',
-            }}
-          >
-            <Box
-              sx={{
-                px: 2,
-                py: 1.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 800, color: '#445C3C' }}
-              >
-                Solo Parent Certification
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<PrintIcon />}
-                  onClick={handlePrint}
-                  disabled={!selectedRecord && !editingId}
-                  sx={{
-                    color: '#445C3C',
-                    borderColor: '#445C3C',
-                    '&:hover': {
-                      bgcolor: '#445C3C',
-                      color: '#fff',
-                      borderColor: '#445C3C',
-                    },
-                  }}
-                >
-                  Print
-                </Button>
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => {
-                    resetForm();
-                    setIsFormOpen(true);
-                    setActiveTab('form');
-                  }}
-                  sx={{
-                    bgcolor: '#445C3C',
-                    '&:hover': { bgcolor: '#2e3d2a' },
-                  }}
-                >
-                  New
-                </Button>
               </Box>
             </Box>
 
-            <Box sx={{ px: 1, pb: 1 }}>
-              <Paper
-                sx={{ p: 0.5, bgcolor: 'background.default', borderRadius: 2 }}
-              >
-                <Tabs
-                  value={activeTab}
-                  onChange={(e, v) => setActiveTab(v)}
-                  variant="fullWidth"
-                  sx={{
-                    minHeight: 'unset',
-                    '& .MuiTabs-flexContainer': { gap: 0.5 },
-                    '& .Mui-selected': {
-                      color: '#445C3C !important',
-                      fontWeight: 600,
-                    },
-                    '& .MuiTabs-indicator': {
-                      backgroundColor: '#445C3C',
-                    },
-                  }}
-                >
-                  <Tab
-                    value="form"
-                    label="Form"
-                    sx={{ minHeight: 'unset', py: 1 }}
-                  />
-                  <Tab
-                    value="records"
-                    label={`Records (${records.length})`}
-                    sx={{ minHeight: 'unset', py: 1 }}
-                  />
-                  <Tab
-                    value="transaction"
-                    label="Transaction"
-                    sx={{ minHeight: 'unset', py: 1 }}
-                  />
-                </Tabs>
-              </Paper>
-            </Box>
-          </Paper>
+            <style>
+              {`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #certificate-preview, #certificate-preview * {
+            visibility: visible;
+          }
+          #certificate-preview {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 8.5in;
+            height: 11in;
+            transform: none !important; /* Remove any transforms */
+          }
+          @page {
+            size: portrait;
+            margin: 0;
+          }
+          /* Ensure colors are preserved when printing */
+          #certificate-preview * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+        }
+      `}
+            </style>
+          </Box>
 
-          {/* Form Tab */}
-          {activeTab === 'form' && (
-            <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
-              <Card sx={{ borderRadius: 3, boxShadow: 1 }}>
-                <CardHeader
-                  title={
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        color: 'grey.800',
-                      }}
-                    >
-                      {editingId ? 'Edit Record' : 'New Solo Parent Record'}
+          {/* RIGHT: FORM/RECORDS PANEL */}
+          <Box sx={{ 
+            width: { xs: '100%', md: '50%', lg: '40%' }, 
+            bgcolor: "background.paper", 
+            borderLeft: { xs: 0, md: 1 }, 
+            borderColor: "divider",
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* FORM */}
+            {activeTab === "form" && (
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+                    <ArticleIcon color="primary" />
+                    {editingId ? "Edit Certificate" : "New Solo Parent Certification"}
+                  </Typography>
+                  {selectedRecord && !editingId && (
+                    <Typography variant="body2" color="text.secondary">
+                      Viewing: {selectedRecord.name}
                     </Typography>
-                  }
-                  subheader={
-                    selectedRecord &&
-                    !editingId && (
-                      <Typography variant="caption" sx={{ color: 'grey.500' }}>
-                        Viewing: {selectedRecord.name}
-                      </Typography>
-                    )
-                  }
-                  sx={{ borderBottom: 1, borderColor: 'grey.200' }}
-                />
-                <CardContent>
-                  <Stack spacing={2}>
+                  )}
+                </Paper>
+
+                <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
+                  <Stack spacing={3}>
                     <Autocomplete
                       options={residents}
-                      getOptionLabel={(option) => option.full_name || ''}
-                      value={
-                        residents.find((r) => r.full_name === formData.name) ||
-                        null
-                      }
-                      onChange={(e, value) => {
-                        if (value) {
+                      getOptionLabel={(option) => option.full_name || ""}
+                      value={residents.find((r) => r.full_name === formData.name) || null}
+                      onChange={(e, nv) => {
+                        if (nv) {
                           setFormData({
                             ...formData,
-                            resident_id: value.resident_id,
-                            name: value.full_name,
-                            address: value.address || '',
-                            birthday: value.dob?.slice(0, 10) || '',
-                            age: calculateAge(value.dob?.slice(0, 10)),
+                            resident_id: nv.resident_id,
+                            name: nv.full_name,
+                            address: nv.address || '',
+                            birthday: nv.dob?.slice(0, 10) || '',
+                            age: calculateAge(nv.dob?.slice(0, 10)),
                           });
                         } else {
-                          setFormData({
-                            ...formData,
-                            resident_id: null,
-                            name: '',
-                            address: '',
-                            birthday: '',
-                            age: '',
-                          });
+                          setFormData({ ...formData, name: '' });
                         }
                       }}
                       renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Full Name *"
-                          variant="outlined"
+                        <TextField 
+                          {...params} 
+                          label="Full Name" 
+                          variant="outlined" 
+                          fullWidth 
                           size="small"
-                          fullWidth
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '&:hover fieldset': {
-                                borderColor: '#445C3C',
-                              },
-                              '&.Mui-focused fieldset': {
-                                borderColor: '#445C3C',
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                              color: '#445C3C',
-                            },
-                          }}
+                          required
                         />
                       )}
                     />
 
-                    <TextField
-                      label="Address *"
-                      variant="outlined"
+                    <TextField 
+                      label="Address" 
+                      variant="outlined" 
+                      fullWidth 
                       size="small"
-                      fullWidth
-                      multiline
+                      multiline 
                       rows={2}
-                      value={formData.address}
-                      onChange={(e) =>
-                        setFormData({ ...formData, address: e.target.value })
-                      }
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': { borderColor: '#445C3C' },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#445C3C',
-                          },
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': {
-                          color: '#445C3C',
-                        },
-                      }}
+                      value={formData.address} 
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })} 
+                      required
                     />
 
-                    <Grid container spacing={1.5}>
-                      <Grid item xs={6}>
-                        <TextField
-                          label="Birthday *"
-                          type="date"
-                          variant="outlined"
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField 
+                          label="Birthday" 
+                          type="date" 
+                          variant="outlined" 
+                          fullWidth 
                           size="small"
-                          fullWidth
-                          InputLabelProps={{ shrink: true }}
-                          value={formData.birthday}
+                          InputLabelProps={{ shrink: true }} 
+                          value={formData.birthday} 
                           onChange={(e) => {
                             const dob = e.target.value;
                             const age = calculateAge(dob);
                             setFormData({ ...formData, birthday: dob, age });
-                          }}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '&:hover fieldset': {
-                                borderColor: '#445C3C',
-                              },
-                              '&.Mui-focused fieldset': {
-                                borderColor: '#445C3C',
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                              color: '#445C3C',
-                            },
-                          }}
+                          }} 
+                          required
                         />
                       </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          label="Age"
-                          variant="outlined"
+                      <Grid item xs={12} sm={6}>
+                        <TextField 
+                          label="Age" 
+                          variant="outlined" 
+                          fullWidth 
                           size="small"
-                          fullWidth
-                          value={formData.age}
+                          value={formData.age} 
                           InputProps={{ readOnly: true }}
                           sx={{
-                            '& .MuiOutlinedInput-root': { bgcolor: 'grey.100' },
+                            '& .MuiOutlinedInput-root': {
+                              bgcolor: 'grey.100',
+                            },
                           }}
                         />
                       </Grid>
                     </Grid>
 
-                    <TextField
-                      label="Resident Since Year"
-                      variant="outlined"
+                    <TextField 
+                      label="Resident Since Year" 
+                      variant="outlined" 
+                      fullWidth 
                       size="small"
-                      fullWidth
-                      value={formData.residentsSinceYear}
-                      onChange={(e) =>
-                        setFormData({ ...formData, residentsSinceYear: e.target.value })
-                      }
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': { borderColor: '#445C3C' },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#445C3C',
-                          },
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': {
-                          color: '#445C3C',
-                        },
-                      }}
+                      value={formData.residentsSinceYear} 
+                      onChange={(e) => setFormData({ ...formData, residentsSinceYear: e.target.value })} 
                     />
 
-                    <TextField
-                      label="Unwed Since Year"
-                      variant="outlined"
+                    <TextField 
+                      label="Unwed Since Year" 
+                      variant="outlined" 
+                      fullWidth 
                       size="small"
-                      fullWidth
-                      value={formData.unwedSinceYear}
-                      onChange={(e) =>
-                        setFormData({ ...formData, unwedSinceYear: e.target.value })
-                      }
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': { borderColor: '#445C3C' },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#445C3C',
-                          },
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': {
-                          color: '#445C3C',
-                        },
-                      }}
+                      value={formData.unwedSinceYear} 
+                      onChange={(e) => setFormData({ ...formData, unwedSinceYear: e.target.value })} 
                     />
 
                     {/* Employment Section */}
@@ -1555,9 +1819,7 @@ export default function SoloParentForm() {
                       <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
                         Employment Information
                       </Typography>
-                      <FormControl fullWidth size="small" variant="outlined"
-                        sx={{ '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: '#445C3C' }, '&.Mui-focused fieldset': { borderColor: '#445C3C' } }, '& .MuiInputLabel-root.Mui-focused': { color: '#445C3C' } }}
-                      >
+                      <FormControl fullWidth size="small" variant="outlined">
                         <InputLabel>Employment Status</InputLabel>
                         <Select
                           value={formData.employmentStatus}
@@ -1580,14 +1842,7 @@ export default function SoloParentForm() {
                           rows={2}
                           value={formData.employmentRemarks}
                           onChange={(e) => setFormData({ ...formData, employmentRemarks: e.target.value })}
-                          sx={{
-                            mt: 1,
-                            '& .MuiOutlinedInput-root': {
-                              '&:hover fieldset': { borderColor: '#445C3C' },
-                              '&.Mui-focused fieldset': { borderColor: '#445C3C' },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': { color: '#445C3C' },
-                          }}
+                          sx={{ mt: 1 }}
                         />
                       )}
                     </Box>
@@ -1603,14 +1858,6 @@ export default function SoloParentForm() {
                           size="small"
                           startIcon={<PersonAddIcon />}
                           onClick={addChild}
-                          sx={{
-                            color: '#445C3C',
-                            borderColor: '#445C3C',
-                            '&:hover': {
-                              bgcolor: '#445C3C',
-                              color: '#fff',
-                            },
-                          }}
                         >
                           Add Child
                         </Button>
@@ -1643,13 +1890,6 @@ export default function SoloParentForm() {
                                     fullWidth
                                     value={child.name}
                                     onChange={(e) => updateChild(index, 'name', e.target.value)}
-                                    sx={{
-                                      '& .MuiOutlinedInput-root': {
-                                        '&:hover fieldset': { borderColor: '#445C3C' },
-                                        '&.Mui-focused fieldset': { borderColor: '#445C3C' },
-                                      },
-                                      '& .MuiInputLabel-root.Mui-focused': { color: '#445C3C' },
-                                    }}
                                   />
                                 </Grid>
                                 <Grid item xs={6}>
@@ -1662,13 +1902,6 @@ export default function SoloParentForm() {
                                     InputLabelProps={{ shrink: true }}
                                     value={child.birthday}
                                     onChange={(e) => updateChild(index, 'birthday', e.target.value)}
-                                    sx={{
-                                      '& .MuiOutlinedInput-root': {
-                                        '&:hover fieldset': { borderColor: '#445C3C' },
-                                        '&.Mui-focused fieldset': { borderColor: '#445C3C' },
-                                      },
-                                      '& .MuiInputLabel-root.Mui-focused': { color: '#445C3C' },
-                                    }}
                                   />
                                 </Grid>
                                 <Grid item xs={6}>
@@ -1685,9 +1918,7 @@ export default function SoloParentForm() {
                                   />
                                 </Grid>
                                 <Grid item xs={12}>
-                                  <FormControl fullWidth size="small" variant="outlined"
-                                    sx={{ '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: '#445C3C' }, '&.Mui-focused fieldset': { borderColor: '#445C3C' } }, '& .MuiInputLabel-root.Mui-focused': { color: '#445C3C' } }}
-                                  >
+                                  <FormControl fullWidth size="small" variant="outlined">
                                     <InputLabel>Education Level</InputLabel>
                                     <Select
                                       value={child.level}
@@ -1709,20 +1940,11 @@ export default function SoloParentForm() {
                                       fullWidth
                                       value={child.levelRemarks}
                                       onChange={(e) => updateChild(index, 'levelRemarks', e.target.value)}
-                                      sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                          '&:hover fieldset': { borderColor: '#445C3C' },
-                                          '&.Mui-focused fieldset': { borderColor: '#445C3C' },
-                                        },
-                                        '& .MuiInputLabel-root.Mui-focused': { color: '#445C3C' },
-                                      }}
                                     />
                                   </Grid>
                                 )}
                                 <Grid item xs={6}>
-                                  <FormControl fullWidth size="small" variant="outlined"
-                                    sx={{ '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: '#445C3C' }, '&.Mui-focused fieldset': { borderColor: '#445C3C' } }, '& .MuiInputLabel-root.Mui-focused': { color: '#445C3C' } }}
-                                  >
+                                  <FormControl fullWidth size="small" variant="outlined">
                                     <InputLabel>Gender</InputLabel>
                                     <Select
                                       value={child.gender}
@@ -1736,9 +1958,7 @@ export default function SoloParentForm() {
                                   </FormControl>
                                 </Grid>
                                 <Grid item xs={6}>
-                                  <FormControl fullWidth size="small" variant="outlined"
-                                    sx={{ '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: '#445C3C' }, '&.Mui-focused fieldset': { borderColor: '#445C3C' } }, '& .MuiInputLabel-root.Mui-focused': { color: '#445C3C' } }}
-                                  >
+                                  <FormControl fullWidth size="small" variant="outlined">
                                     <InputLabel>Relationship</InputLabel>
                                     <Select
                                       value={child.relationship}
@@ -1760,13 +1980,6 @@ export default function SoloParentForm() {
                                       fullWidth
                                       value={child.relationshipRemarks}
                                       onChange={(e) => updateChild(index, 'relationshipRemarks', e.target.value)}
-                                      sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                          '&:hover fieldset': { borderColor: '#445C3C' },
-                                          '&.Mui-focused fieldset': { borderColor: '#445C3C' },
-                                        },
-                                        '& .MuiInputLabel-root.Mui-focused': { color: '#445C3C' },
-                                      }}
                                     />
                                   </Grid>
                                 )}
@@ -1777,398 +1990,138 @@ export default function SoloParentForm() {
                       )}
                     </Box>
 
-                    <TextField
-                      label="Date Issued *"
-                      type="date"
-                      variant="outlined"
+                    <TextField 
+                      label="Date Issued" 
+                      type="date" 
+                      variant="outlined" 
+                      fullWidth 
                       size="small"
-                      fullWidth
-                      InputLabelProps={{ shrink: true }}
-                      value={formData.dateIssued}
-                      onChange={(e) =>
-                        setFormData({ ...formData, dateIssued: e.target.value })
-                      }
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': { borderColor: '#445C3C' },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#445C3C',
-                          },
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': {
-                          color: '#445C3C',
-                        },
-                      }}
+                      InputLabelProps={{ shrink: true }} 
+                      value={formData.dateIssued} 
+                      onChange={(e) => setFormData({ ...formData, dateIssued: e.target.value })} 
+                      required
                     />
 
-                    <Box sx={{ display: 'flex', gap: 1, pt: 1 }}>
-                      <Button
-                        onClick={handleSubmit}
-                        variant="contained"
-                        startIcon={<SaveIcon />}
-                        fullWidth
-                        sx={{
-                          bgcolor: '#445C3C',
-                          '&:hover': { bgcolor: '#2e3d2a' },
-                          fontWeight: 500,
-                          py: 1.25,
-                          textTransform: 'none',
-                        }}
+                    <Box sx={{ display: "flex", gap: 2, pt: 2 }}>
+                      <Button 
+                        onClick={handleSubmit} 
+                        variant="contained" 
+                        startIcon={<SaveIcon />} 
+                        fullWidth 
+                        color="primary"
+                        size="large"
                       >
-                        {editingId ? 'Update' : 'Save'}
+                        {editingId ? "Update" : "Save"}
                       </Button>
                       {(editingId || isFormOpen) && (
-                        <Button
-                          onClick={resetForm}
-                          variant="outlined"
-                          startIcon={<CloseIcon />}
-                          sx={{
-                            color: '#445C3C',
-                            borderColor: '#445C3C',
-                            '&:hover': {
-                              bgcolor: '#e8f5e9',
-                              borderColor: '#445C3C',
-                            },
-                            py: 1.25,
-                            px: 2,
-                            textTransform: 'none',
-                          }}
+                        <Button 
+                          onClick={resetForm} 
+                          variant="outlined" 
+                          startIcon={<CloseIcon />} 
+                          color="primary"
+                          size="large"
                         >
                           Cancel
                         </Button>
                       )}
                     </Box>
                   </Stack>
-                </CardContent>
-              </Card>
-            </Box>
-          )}
-
-          {/* Records Tab */}
-          {activeTab === 'records' && (
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Box sx={{ p: 1.5 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Search records..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ color: 'grey.400', fontSize: 20 }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': { borderColor: '#445C3C' },
-                      '&.Mui-focused fieldset': { borderColor: '#445C3C' },
-                    },
-                  }}
-                />
+                </Box>
               </Box>
+            )}
 
-              <Box sx={{ flex: 1, overflow: 'auto', px: 1.5, pb: 1.5 }}>
-                {filteredRecords.length === 0 ? (
-                  <Paper sx={{ p: 3, textAlign: 'center', color: 'grey.500' }}>
-                    <Typography variant="body2">
-                      {searchTerm ? 'No records found' : 'No records yet'}
-                    </Typography>
-                  </Paper>
-                ) : (
-                  <Stack spacing={1}>
-                    {filteredRecords.map((record) => (
-                      <Card
-                        key={record.id}
-                        sx={{
-                          boxShadow: 1,
-                          '&:hover': { boxShadow: 2 },
-                          transition: 'box-shadow 0.2s',
-                        }}
-                      >
-                        <CardContent
-                          sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}
-                        >
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'flex-start',
-                            }}
-                          >
-                            <Box sx={{ flex: 1 }}>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  fontWeight: 600,
-                                  color: 'grey.900',
-                                  mb: 0.5,
-                                }}
-                              >
-                                {record.name}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: 'grey.600',
-                                  display: 'block',
-                                  mb: 0.5,
-                                }}
-                              >
-                                {record.address}
-                              </Typography>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexWrap: 'wrap',
-                                  gap: 0.5,
-                                  alignItems: 'center',
-                                }}
-                              >
-                                {record.contactNo && (
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      color: 'grey.500',
-                                      fontSize: '0.625rem',
-                                    }}
-                                  >
-                                    {record.contactNo}
-                                  </Typography>
-                                )}
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: 'grey.400',
-                                    fontSize: '0.625rem',
-                                  }}
-                                >
-                                  Issued: {formatDate(record.dateIssued)}
-                                </Typography>
-                              </Box>
-                            </Box>
-                            <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleView(record)}
-                                sx={{
-                                  color: 'info.main',
-                                  '&:hover': { bgcolor: 'info.lighter' },
-                                  p: 0.75,
-                                }}
-                                title="View"
-                              >
-                                <EyeIcon sx={{ fontSize: 16 }} />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleEdit(record)}
-                                sx={{
-                                  color: 'success.main',
-                                  '&:hover': { bgcolor: 'success.lighter' },
-                                  p: 0.75,
-                                }}
-                                title="Edit"
-                              >
-                                <EditIcon sx={{ fontSize: 16 }} />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleDelete(record.id)}
-                                sx={{
-                                  color: 'error.main',
-                                  '&:hover': { bgcolor: 'error.lighter' },
-                                  p: 0.75,
-                                }}
-                                title="Delete"
-                              >
-                                <DeleteIcon sx={{ fontSize: 16 }} />
-                              </IconButton>
-                            </Box>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </Stack>
-                )}
-              </Box>
-            </Box>
-          )}
-
-          {/* Transaction Tab */}
-          {activeTab === 'transaction' && (
-            <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
-              <Card sx={{ borderRadius: 3, boxShadow: 1, mb: 2 }}>
-                <CardHeader
-                  title={
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        color: 'grey.800',
-                      }}
-                    >
-                      Search by Transaction Number
-                    </Typography>
-                  }
-                  sx={{ borderBottom: 1, borderColor: 'grey.200' }}
-                />
-                <CardContent>
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="Enter transaction ID"
-                      value={transactionSearch}
-                      onChange={(e) => setTransactionSearch(e.target.value)}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <ReceiptIcon
-                              sx={{ color: 'grey.400', fontSize: 20 }}
-                            />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                    <Button
-                      variant="contained"
-                      onClick={handleTransactionSearch}
-                      startIcon={<SearchIcon />}
-                      sx={{
-                        bgcolor: '#445C3C',
-                        '&:hover': { bgcolor: '#2e3d2a' },
-                        px: 3,
-                      }}
-                    >
-                      Search
-                    </Button>
-                  </Box>
-                  <Typography variant="caption" sx={{ color: 'grey.500' }}>
-                    Use the transaction ID (record id) to quickly find
-                    certificates.
+            {/* RECORDS */}
+            {activeTab === "records" && (
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                    <FolderIcon color="primary" />
+                    Certificate Records
                   </Typography>
-                </CardContent>
-              </Card>
+                  <TextField 
+                    fullWidth 
+                    size="small" 
+                    placeholder="Search by name, address, or contact number" 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                    InputProps={{ 
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      ) 
+                    }} 
+                  />
+                </Paper>
 
-              <Card sx={{ borderRadius: 3, boxShadow: 1 }}>
-                <CardHeader
-                  title={
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        color: 'grey.800',
-                      }}
-                    >
-                      Recent Transactions
-                    </Typography>
-                  }
-                  sx={{ borderBottom: 1, borderColor: 'grey.200' }}
-                />
-                <CardContent sx={{ p: 0 }}>
-                  {transactionFilteredRecords.length === 0 ? (
-                    <Box sx={{ p: 3, textAlign: 'center', color: 'grey.500' }}>
-                      <Typography variant="body2">
-                        {transactionSearch
-                          ? 'No transactions found'
-                          : 'Enter a transaction number to search'}
+                <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
+                  {filteredRecords.length === 0 ? (
+                                        <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
+                      <FolderIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                      <Typography variant="h6" gutterBottom>
+                        {searchTerm ? "No records found" : "No records yet"}
                       </Typography>
-                    </Box>
+                      <Typography variant="body2">
+                        {searchTerm ? "Try a different search term" : "Create your first certificate to get started"}
+                      </Typography>
+                    </Paper>
                   ) : (
-                    <Stack spacing={1}>
-                      {transactionFilteredRecords.map((record) => (
-                        <Card
-                          key={record.id}
-                          sx={{
-                            boxShadow: 0,
-                            '&:hover': { boxShadow: 1 },
-                            transition: 'box-shadow 0.2s',
-                            borderLeft: 3,
-                            borderColor: '#445C3C',
-                          }}
-                        >
-                          <CardContent
-                            sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}
-                          >
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                              }}
-                            >
+                    <Stack spacing={2}>
+                      {filteredRecords.map((record) => (
+                        <Card key={record.id} sx={{ 
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          borderLeft: 4,
+                          borderColor: "primary.main",
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                               <Box sx={{ flex: 1 }}>
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    fontWeight: 600,
-                                    color: '#445C3C',
-                                    mb: 0.5,
-                                  }}
-                                >
+                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5, color: "#000000" }}>
                                   {record.name}
                                 </Typography>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: '#445C3C',
-                                    display: 'block',
-                                    mb: 0.5,
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  {record.id}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: 'grey.600',
-                                    display: 'block',
-                                    mb: 0.5,
-                                  }}
-                                >
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                                   {record.address}
                                 </Typography>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: 'grey.400',
-                                    fontSize: '0.625rem',
-                                  }}
-                                >
-                                  Issued: {formatDate(record.dateIssued)}
-                                </Typography>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                                  {record.contactNo && (
+                                    <Typography variant="caption" color="text.secondary">
+                                      {record.contactNo}
+                                    </Typography>
+                                  )}
+                                  <Typography variant="caption" color="text.secondary">
+                                    Issued: {formatDateDisplay(record.dateIssued)}
+                                  </Typography>
+                                </Box>
                               </Box>
-                              <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleView(record)}
-                                  sx={{
-                                    color: 'info.main',
-                                    '&:hover': { bgcolor: 'info.lighter' },
-                                    p: 0.75,
-                                  }}
-                                  title="View"
-                                >
-                                  <EyeIcon sx={{ fontSize: 16 }} />
-                                </IconButton>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleEdit(record)}
-                                  sx={{
-                                    color: 'success.main',
-                                    '&:hover': { bgcolor: 'success.lighter' },
-                                    p: 0.75,
-                                  }}
-                                  title="Edit"
-                                >
-                                  <EditIcon sx={{ fontSize: 16 }} />
-                                </IconButton>
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Tooltip title="View">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleView(record)} 
+                                    color="primary"
+                                  >
+                                    <EyeIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Edit">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleEdit(record)} 
+                                    color="success"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleDelete(record.id)} 
+                                    color="error"
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
                               </Box>
                             </Box>
                           </CardContent>
@@ -2176,13 +2129,284 @@ export default function SoloParentForm() {
                       ))}
                     </Stack>
                   )}
-                </CardContent>
-              </Card>
-            </Box>
+                </Box>
+              </Box>
+            )}
+
+            {/* TRANSACTION */}
+            {activeTab === "transaction" && (
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                    <ReceiptIcon color="primary" />
+                    Transaction Search
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <TextField 
+                      fullWidth 
+                      size="small" 
+                      placeholder="Enter transaction number" 
+                      value={transactionSearch} 
+                      onChange={(e) => setTransactionSearch(e.target.value)} 
+                      InputProps={{ 
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <ReceiptIcon />
+                          </InputAdornment>
+                        ) 
+                      }} 
+                    />
+                    <Button 
+                      variant="contained" 
+                      color="primary" 
+                      onClick={handleTransactionSearch} 
+                      startIcon={<SearchIcon />}
+                    >
+                      Search
+                    </Button>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                    Format: SP-YYMMDD-XXX
+                  </Typography>
+                </Paper>
+
+                <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
+                  {transactionFilteredRecords.length === 0 ? (
+                    <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
+                      <ReceiptIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                      <Typography variant="h6" gutterBottom>
+                        No transactions found
+                      </Typography>
+                      <Typography variant="body2">
+                        Enter a transaction number to search
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    <Stack spacing={2}>
+                      {transactionFilteredRecords.map((r) => (
+                        <Card key={r.id} sx={{ 
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          borderLeft: 4,
+                          borderColor: "secondary.main",
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5, color: "#000000" }}>
+                                  {r.name}
+                                </Typography>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                                  <Chip 
+                                    label={r.transaction_number} 
+                                    size="small" 
+                                    color="secondary" 
+                                    variant="outlined" 
+                                  />
+                                </Box>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                  {r.address}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Issued: {formatDateDisplay(r.dateIssued)}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Tooltip title="View">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleView(r)} 
+                                    color="primary"
+                                  >
+                                    <EyeIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Edit">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleEdit(r)} 
+                                    color="success"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        </Box>
+
+        {/* FLOATING ACTION BUTTON FOR MOBILE */}
+        {isMobile && activeTab !== "form" && (
+          <Fab
+            color="primary"
+            aria-label="add"
+            sx={{
+              position: 'absolute',
+              bottom: 16,
+              right: 16,
+            }}
+            onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }}
+          >
+            <AddIcon />
+          </Fab>
+        )}
+      </Box>
+
+      {/* QR Code Details Dialog */}
+      <Dialog
+        open={qrDialogOpen}
+        onClose={() => setQrDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
+          Certificate Details
+        </DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Certificate ID:
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                {display.id || 'Draft (Not yet saved)'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Transaction Number:
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                {display.transaction_number || 'N/A'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Full Name:
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                {display.name}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Address:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.address}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Age:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.age}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Resident Since:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.residentsSinceYear}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Unwed Since:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.unwedSinceYear}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Employment Status:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.employmentStatus === 'Others' 
+                  ? display.employmentRemarks || 'N/A'
+                  : display.employmentStatus || 'N/A'
+                }
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Date Issued:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {formatDateDisplay(display.dateIssued)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Date Created:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.dateCreated
+                  ? formatDateTimeDisplay(display.dateCreated)
+                  : 'N/A'}
+              </Typography>
+            </Grid>
+            {children.length > 0 && (
+              <Grid item xs={12}>
+                <Typography variant="body2" sx={{ color: 'grey.600', mb: 1 }}>
+                  Children:
+                </Typography>
+                <Stack spacing={1}>
+                  {children.map((child, index) => (
+                    <Box key={child.id || index} sx={{ p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {child.name} - {child.age} years old
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {child.level} | {child.gender} | {child.relationship}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              </Grid>
+            )}
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setQrDialogOpen(false)} color="primary">
+            Close
+          </Button>
+          {display.id && (
+            <Button
+              onClick={() => {
+                const verificationUrl = `${window.location.origin}/verify-solo-parent?id=${display.id}`;
+                window.open(verificationUrl, '_blank');
+                setQrDialogOpen(false);
+              }}
+              variant="contained"
+              color="primary"
+            >
+              Go to Verification Page
+            </Button>
           )}
-        </Paper>
-      </Container>
-    </Box>
+        </DialogActions>
+      </Dialog>
+    </ThemeProvider>
   );
 }
 

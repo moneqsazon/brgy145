@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 04, 2025 at 05:49 PM
+-- Generation Time: Nov 07, 2025 at 06:53 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -57,6 +57,33 @@ INSERT INTO `barangay_clearance` (`barangay_clearance_id`, `resident_id`, `trans
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `bhert_certificate_normal`
+--
+
+CREATE TABLE `bhert_certificate_normal` (
+  `bhert_certificate_normal_id` int(11) NOT NULL,
+  `resident_id` int(11) NOT NULL,
+  `full_name` varchar(255) NOT NULL,
+  `address` varchar(255) NOT NULL,
+  `requestor` varchar(255) NOT NULL,
+  `purpose` varchar(255) NOT NULL,
+  `date_issued` date NOT NULL,
+  `transaction_number` varchar(100) NOT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `date_created` datetime DEFAULT current_timestamp(),
+  `date_updated` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `bhert_certificate_normal`
+--
+
+INSERT INTO `bhert_certificate_normal` (`bhert_certificate_normal_id`, `resident_id`, `full_name`, `address`, `requestor`, `purpose`, `date_issued`, `transaction_number`, `is_active`, `date_created`, `date_updated`) VALUES
+(1, 8, 'Trixie Ann G. Morales', 'Sampaloc, Manila', 'St. Peter Chapel', 'Hospitall', '2025-11-07', 'BCN-251107-540100', 1, '2025-11-07 22:32:34', '2025-11-07 22:32:46');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `bhert_certificate_positive`
 --
 
@@ -89,29 +116,26 @@ INSERT INTO `bhert_certificate_positive` (`bhert_certificate_positive_id`, `resi
 CREATE TABLE `business_clearance` (
   `business_clearance_id` int(11) NOT NULL,
   `resident_id` int(11) NOT NULL,
-  `transactionNum` varchar(255) NOT NULL,
   `full_name` varchar(255) NOT NULL,
-  `address` text DEFAULT NULL,
-  `provincial_address` text DEFAULT NULL,
-  `dob` date DEFAULT NULL,
-  `age` int(11) DEFAULT NULL,
-  `civil_status` enum('Single','Married','Widowed','Divorced','Separated') NOT NULL,
-  `contact_no` varchar(20) DEFAULT NULL,
-  `request_reason` text DEFAULT NULL,
+  `nature_of_business` varchar(255) NOT NULL,
+  `address` varchar(255) NOT NULL,
+  `date_issued` date NOT NULL,
+  `date_expired` date NOT NULL,
   `remarks` text DEFAULT NULL,
-  `date_issued` date DEFAULT NULL,
-  `transaction_number` varchar(50) DEFAULT NULL,
+  `request_reason` text NOT NULL,
+  `transaction_number` varchar(100) NOT NULL,
   `is_active` tinyint(1) DEFAULT 1,
-  `date_created` timestamp NOT NULL DEFAULT current_timestamp(),
-  `date_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `date_created` datetime DEFAULT current_timestamp(),
+  `date_updated` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `business_clearance`
 --
 
-INSERT INTO `business_clearance` (`business_clearance_id`, `resident_id`, `transactionNum`, `full_name`, `address`, `provincial_address`, `dob`, `age`, `civil_status`, `contact_no`, `request_reason`, `remarks`, `date_issued`, `transaction_number`, `is_active`, `date_created`, `date_updated`) VALUES
-(1, 6, 'BUS-251018-614100', 'Lyra Borling', '29 St', 'MetroManila', '2000-01-28', 25, 'Single', '09276121723', 'sdfsdf', 'Residence in this Barangay and certifies that he/she is a resident of good moral character.', '2025-10-18', 'BUS-251018-614100', 1, '2025-10-18 02:44:33', '2025-10-18 02:44:33');
+INSERT INTO `business_clearance` (`business_clearance_id`, `resident_id`, `full_name`, `nature_of_business`, `address`, `date_issued`, `date_expired`, `remarks`, `request_reason`, `transaction_number`, `is_active`, `date_created`, `date_updated`) VALUES
+(1, 8, 'Trixie Ann G. Morales', 'House Renovation', 'Sampaloc, Manila', '2025-11-07', '2026-11-07', 'They are operating under the jurisdiction of our Brgy. 145, being issued under the requirement of the New Local Code under Republic Act 7160 for securing their permit.', 'Local Employment', 'BUS-251107-51100', 0, '2025-11-07 23:23:37', '2025-11-07 23:24:14'),
+(2, 7, 'Hanna N. Sarabia', 'House Renovation', '123 General Tirona St', '2025-11-07', '2026-11-07', 'They are operating under the jurisdiction of our Brgy. 145, being issued under the requirement of the New Local Code under Republic Act 7160 for securing their permit.', 'Local employment', 'BUS-251107-426100', 1, '2025-11-07 23:25:35', '2025-11-07 23:25:35');
 
 -- --------------------------------------------------------
 
@@ -246,7 +270,7 @@ CREATE TABLE `certificate_of_residency` (
 --
 
 INSERT INTO `certificate_of_residency` (`certificate_of_residency_id`, `resident_id`, `transactionNum`, `full_name`, `address`, `provincial_address`, `dob`, `age`, `civil_status`, `contact_no`, `request_reason`, `remarks`, `date_issued`, `transaction_number`, `is_active`, `date_created`, `date_updated`) VALUES
-(1, 7, '', 'Hanna N. Sarabia', '123 General Tirona St', '123 General Tirona St', '2004-06-01', 21, 'Single', '09663122562', 'hehe', 'Residence in this Barangay and certifies that he/she is a resident of good moral character.', '2025-10-18', 'COR-251018-100100', 1, '2025-10-18 02:44:53', '2025-10-18 02:44:53'),
+(1, 7, '', 'Hanna N. Sarabia', '123 General Tirona St', '123 General ', '2004-06-01', 21, 'Single', '09663122562', 'hehe', 'Residence in this Barangay and certifies that he/she is a resident of good moral character.', '2025-10-18', 'COR-251018-100100', 1, '2025-10-18 02:44:53', '2025-11-06 19:21:53'),
 (2, 7, '', 'Hanna N. Sarabia', '123 General Tirona St', '123 General Tirona St', '2004-06-01', 21, 'Single', '09663122562', 'sjhdsakdas', 'Residence in this Barangay and certifies that he/she is a resident of good moral character.', '2025-10-18', 'COR-251018-139100', 0, '2025-10-18 02:48:19', '2025-10-18 02:48:27');
 
 -- --------------------------------------------------------
@@ -312,7 +336,7 @@ CREATE TABLE `indigency` (
 INSERT INTO `indigency` (`indigency_id`, `resident_id`, `transactionNum`, `full_name`, `address`, `provincial_address`, `dob`, `age`, `civil_status`, `contact_no`, `request_reason`, `remarks`, `date_issued`, `transaction_number`, `is_active`, `date_created`, `date_updated`) VALUES
 (1, 1, '', 'Moneque Sazon', '12 Kanto St', 'Metro Manila', '2000-01-31', 25, 'Single', '098726416782', 'Job Application\n', 'Residence in this Barangay and certifies that he/she belongs to indigent families.', '2025-10-09', NULL, 0, '2025-10-11 11:24:38', '2025-10-16 02:03:35'),
 (3, 6, '', 'Lyra Borling', '29 St', 'MetroManila', '2000-01-27', 25, 'Single', '09276121723', 'Employment', 'Residence in this Barangay and certifies that he/she belongs to indigent families. ', '2025-10-11', NULL, 0, '2025-10-11 13:42:58', '2025-10-16 02:03:37'),
-(6, 8, '', 'Trixie Ann G. Morales', 'Sampaloc, Manila', 'Metro Manila', '2002-10-05', 23, 'Single', '09354685456', 'dasdasda', 'Residence in this Barangay and certifies that he/she belongs to indigent families.', '2025-10-14', 'IND-251014-167', 1, '2025-10-14 07:39:55', '2025-10-14 07:39:55'),
+(6, 8, '', 'Trixie Ann G. Morales', 'Sampaloc, Manila', 'Metro Manila', '2002-10-05', 23, 'Single', '09354685456', 'dasaaaa', 'Residence in this Barangay and certifies that he/she belongs to indigent families.', '2025-10-14', 'IND-251014-167', 1, '2025-10-14 07:39:55', '2025-11-06 18:17:32'),
 (7, 6, '', 'Lyra Borling', '29 St', 'MetroManila', '2000-01-28', 25, 'Single', '09276121723', 'fsfsd', 'Residence in this Barangay and certifies that he/she belongs to indigent families.', '2025-10-14', 'IND-251014-756', 1, '2025-10-14 07:40:16', '2025-10-14 07:40:16'),
 (8, 6, '', 'Lyra Borling', '29 St', 'MetroManila', '2000-01-28', 25, 'Single', '09276121723', 'Wala lang', 'Residence in this Barangay and certifies that he/she belongs to indigent families.', '2025-10-14', 'IND-251014-050', 1, '2025-10-14 07:44:34', '2025-10-16 02:03:26');
 
@@ -339,7 +363,8 @@ CREATE TABLE `oath_job` (
 --
 
 INSERT INTO `oath_job` (`id`, `resident_id`, `transaction_number`, `full_name`, `age`, `address`, `date_issued`, `date_created`, `date_updated`) VALUES
-(1, 7, 'IND-251018144452-418', 'Hanna N. Sarabia', 21, '123 General Tirona St', '2025-10-18', '2025-10-18 06:44:52', '2025-10-18 07:01:28');
+(1, 7, 'IND-251018144452-418', 'Hanna N. Sarabia', 21, '123 General Tirona St', '2025-10-18', '2025-10-18 06:44:52', '2025-10-18 07:01:28'),
+(3, NULL, 'IND-251107065218-651', 'Lyra Borling', 25, '29 St', '2025-11-06', '2025-11-06 22:52:18', '2025-11-06 22:52:18');
 
 -- --------------------------------------------------------
 
@@ -543,6 +568,13 @@ ALTER TABLE `barangay_clearance`
   ADD KEY `idx_transaction_number` (`transaction_number`);
 
 --
+-- Indexes for table `bhert_certificate_normal`
+--
+ALTER TABLE `bhert_certificate_normal`
+  ADD PRIMARY KEY (`bhert_certificate_normal_id`),
+  ADD KEY `resident_id` (`resident_id`);
+
+--
 -- Indexes for table `bhert_certificate_positive`
 --
 ALTER TABLE `bhert_certificate_positive`
@@ -553,9 +585,7 @@ ALTER TABLE `bhert_certificate_positive`
 --
 ALTER TABLE `business_clearance`
   ADD PRIMARY KEY (`business_clearance_id`),
-  ADD UNIQUE KEY `transaction_number` (`transaction_number`),
-  ADD KEY `resident_id` (`resident_id`),
-  ADD KEY `idx_transaction_number` (`transaction_number`);
+  ADD KEY `resident_id` (`resident_id`);
 
 --
 -- Indexes for table `cash_assistance`
@@ -678,6 +708,12 @@ ALTER TABLE `barangay_clearance`
   MODIFY `barangay_clearance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT for table `bhert_certificate_normal`
+--
+ALTER TABLE `bhert_certificate_normal`
+  MODIFY `bhert_certificate_normal_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `bhert_certificate_positive`
 --
 ALTER TABLE `bhert_certificate_positive`
@@ -687,7 +723,7 @@ ALTER TABLE `bhert_certificate_positive`
 -- AUTO_INCREMENT for table `business_clearance`
 --
 ALTER TABLE `business_clearance`
-  MODIFY `business_clearance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `business_clearance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `cash_assistance`
@@ -735,7 +771,7 @@ ALTER TABLE `indigency`
 -- AUTO_INCREMENT for table `oath_job`
 --
 ALTER TABLE `oath_job`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `permit_to_travel`
@@ -788,6 +824,12 @@ ALTER TABLE `users`
 --
 ALTER TABLE `barangay_clearance`
   ADD CONSTRAINT `barangay_clearance_ibfk_1` FOREIGN KEY (`resident_id`) REFERENCES `residents` (`resident_id`);
+
+--
+-- Constraints for table `bhert_certificate_normal`
+--
+ALTER TABLE `bhert_certificate_normal`
+  ADD CONSTRAINT `bhert_certificate_normal_ibfk_1` FOREIGN KEY (`resident_id`) REFERENCES `residents` (`resident_id`);
 
 --
 -- Constraints for table `business_clearance`

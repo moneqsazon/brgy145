@@ -518,14 +518,87 @@ export default function CertificateOfAction() {
       setIsGeneratingPDF(false);
     }
   }
+function handlePrint() {
+    // Check if there's a certificate to print
+    if (!display.certificate_of_action_id) {
+      alert('Please save the record first before printing');
+      return;
+    }
 
-  function handlePrint() {
-    if (!display.certificate_of_action_id) { alert("Please save first"); return; }
-    const certificateElement = document.getElementById("certificate-preview");
-    const printWindow = window.open("", "_blank");
-    const certificateHTML = certificateElement.outerHTML;
-    printWindow.document.write(`<!doctype html><html><head><title>Print</title><style>body{margin:0}#certificate-preview{width:8.5in;height:11in}</style></head><body>${certificateHTML}<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script></body></html>`);
-    printWindow.document.close();
+    // 1. Get the certificate element
+    const certificateElement = document.getElementById('certificate-preview');
+    if (!certificateElement) {
+      alert('Certificate not found for printing.');
+      return;
+    }
+
+    // 2. Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px'; // Move it way off-screen
+    iframe.style.top = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    document.body.appendChild(iframe);
+
+    // 3. Write the certificate content and styles into the iframe
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Certificate</title>
+          <style>
+            @page {
+              size: 8.5in 11in;
+              margin: 0;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            #certificate-preview {
+              width: 8.5in;
+              height: 11in;
+              position: relative;
+              overflow: hidden;
+              background: white;
+              box-sizing: border-box;
+            }
+            #certificate-preview * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+          </style>
+        </head>
+        <body>
+          ${certificateElement.outerHTML}
+        </body>
+      </html>
+    `);
+    iframeDoc.close();
+
+    // 4. Trigger the print dialog once the iframe content is loaded
+    setTimeout(() => {
+      const iframeWindow = iframe.contentWindow || iframe;
+      iframeWindow.focus(); // Required for some browsers
+      iframeWindow.print();
+
+      // 5. Clean up by removing the iframe after the print dialog
+      window.onafterprint = () => {
+        document.body.removeChild(iframe);
+      };
+      // Fallback cleanup in case onafterprint doesn't fire
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    }, 250); // A short delay to render
   }
 
   const handleZoomIn = () => setZoomLevel((p) => Math.min(p + 0.1, 2));

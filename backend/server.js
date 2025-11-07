@@ -1405,9 +1405,11 @@ app.delete('/barangay-clearance/:id', async (req, res) => {
 
 /**
  * BUSINESS CLEARANCE CRUD
+ * Updated to match the new business_clearance table schema.
  */
 
 // GET all active business clearance records
+// NO CHANGES NEEDED - This will automatically adapt to the new table structure.
 app.get('/business-clearance', async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -1423,6 +1425,7 @@ app.get('/business-clearance', async (req, res) => {
 });
 
 // GET single business clearance by ID
+// NO CHANGES NEEDED
 app.get('/business-clearance/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -1440,24 +1443,23 @@ app.get('/business-clearance/:id', async (req, res) => {
 });
 
 // CREATE new business clearance
+// MODIFIED: Updated fields to match the new table schema.
 app.post('/business-clearance', async (req, res) => {
   try {
     const {
       resident_id,
       full_name,
       address,
-      provincial_address,
-      dob,
-      age,
-      civil_status,
-      contact_no,
-      request_reason,
-      remarks,
+      nature_of_business, // ADDED
       date_issued,
+      date_expired, // ADDED
+      remarks,
+      request_reason,
       transaction_number,
     } = req.body;
 
-    if (!full_name || !address || !request_reason || !date_issued) {
+    // MODIFIED: Updated validation to include new required fields.
+    if (!full_name || !address || !nature_of_business || !date_issued || !date_expired || !request_reason) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -1473,25 +1475,21 @@ app.post('/business-clearance', async (req, res) => {
     if (existing.length > 0) {
       // If collision, generate a new one
       const newTransactionNumber = generateTransactionNumberForType('BUS');
+      // MODIFIED: Query now matches the new schema.
       const [result] = await pool.query(
         `INSERT INTO business_clearance 
-          (resident_id, transactionNum, full_name, address, provincial_address, dob, age,
-           civil_status, contact_no, request_reason, remarks, date_issued, transaction_number)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (resident_id, full_name, address, nature_of_business, date_issued, date_expired, remarks, request_reason, transaction_number)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           resident_id,
-          newTransactionNumber, // transactionNum field
           full_name,
           address,
-          provincial_address || null,
-          dob,
-          Number(age),
-          civil_status,
-          contact_no || null,
-          request_reason,
-          remarks || null,
+          nature_of_business,
           date_issued,
-          newTransactionNumber, // transaction_number field
+          date_expired,
+          remarks || null,
+          request_reason,
+          newTransactionNumber,
         ]
       );
 
@@ -1503,24 +1501,21 @@ app.post('/business-clearance', async (req, res) => {
       return res.status(201).json(rows[0]);
     }
 
+    // MODIFIED: Query now matches the new schema.
     const [result] = await pool.query(
       `INSERT INTO business_clearance 
-        (resident_id, transactionNum, full_name, address, provincial_address, dob, age, civil_status, contact_no, request_reason, remarks, date_issued, transaction_number)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (resident_id, full_name, address, nature_of_business, date_issued, date_expired, remarks, request_reason, transaction_number)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         resident_id,
-        finalTransactionNumber, // transactionNum field
         full_name,
         address,
-        provincial_address || null,
-        dob,
-        Number(age),
-        civil_status,
-        contact_no || null,
-        request_reason,
-        remarks || null,
+        nature_of_business,
         date_issued,
-        finalTransactionNumber, // transaction_number field
+        date_expired,
+        remarks || null,
+        request_reason,
+        finalTransactionNumber,
       ]
     );
 
@@ -1537,6 +1532,7 @@ app.post('/business-clearance', async (req, res) => {
 });
 
 // UPDATE existing business clearance
+// MODIFIED: Updated fields to match the new table schema.
 app.put('/business-clearance/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -1544,14 +1540,11 @@ app.put('/business-clearance/:id', async (req, res) => {
       resident_id,
       full_name,
       address,
-      provincial_address,
-      dob,
-      age,
-      civil_status,
-      contact_no,
-      request_reason,
-      remarks,
+      nature_of_business, // ADDED
       date_issued,
+      date_expired, // ADDED
+      remarks,
+      request_reason,
       transaction_number,
     } = req.body;
 
@@ -1569,24 +1562,21 @@ app.put('/business-clearance/:id', async (req, res) => {
       }
     }
 
+    // MODIFIED: Query now matches the new schema.
     const [result] = await pool.query(
       `UPDATE business_clearance
-       SET resident_id=?, transactionNum=COALESCE(?, transactionNum), full_name=?, address=?, provincial_address=?, dob=?, age=?, civil_status=?, contact_no=?, request_reason=?, remarks=?, date_issued=?, transaction_number=COALESCE(?, transaction_number), date_updated=NOW()
+       SET resident_id=?, full_name=?, address=?, nature_of_business=?, date_issued=?, date_expired=?, remarks=?, request_reason=?, transaction_number=COALESCE(?, transaction_number), date_updated=NOW()
        WHERE business_clearance_id=?`,
       [
         resident_id,
-        transaction_number, // transactionNum field
         full_name,
         address,
-        provincial_address,
-        dob,
-        Number(age),
-        civil_status,
-        contact_no,
-        request_reason,
-        remarks,
+        nature_of_business,
         date_issued,
-        transaction_number, // transaction_number field
+        date_expired,
+        remarks,
+        request_reason,
+        transaction_number,
         id,
       ]
     );
@@ -1607,6 +1597,7 @@ app.put('/business-clearance/:id', async (req, res) => {
 });
 
 // DELETE business clearance (soft delete)
+// NO CHANGES NEEDED
 app.delete('/business-clearance/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -3269,6 +3260,225 @@ app.get('/solo-parent-statistics', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch statistics' });
   }
 });
+
+
+
+/**
+ * BHERT CERTIFICATE NORMAL CRUD
+ */
+
+// GET all active BHERT records
+app.get('/bhert-certificate-normal', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+         bhert_certificate_normal_id, resident_id, full_name, address,
+         requestor, purpose, date_issued, transaction_number,
+         is_active, date_created, date_updated
+       FROM bhert_certificate_normal
+       WHERE is_active = TRUE
+       ORDER BY bhert_certificate_normal_id DESC`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch BHERT records' });
+  }
+});
+
+// GET single record by ID
+app.get('/bhert-certificate-normal/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(
+      `SELECT
+         bhert_certificate_normal_id, resident_id, full_name, address,
+         requestor, purpose, date_issued, transaction_number,
+         is_active, date_created, date_updated
+       FROM bhert_certificate_normal
+       WHERE bhert_certificate_normal_id = ?`,
+      [id]
+    );
+
+    if (rows.length === 0)
+      return res.status(404).json({ error: 'Record not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch record' });
+  }
+});
+
+// GET record by transaction number
+app.get('/bhert-certificate-normal/transaction/:transactionNumber', async (req, res) => {
+  try {
+    const { transactionNumber } = req.params;
+    const [rows] = await pool.query(
+      `SELECT
+         bhert_certificate_normal_id, resident_id, full_name, address,
+         requestor, purpose, date_issued, transaction_number,
+         is_active, date_created, date_updated
+       FROM bhert_certificate_normal
+       WHERE transaction_number = ? AND is_active = TRUE`,
+      [transactionNumber]
+    );
+
+    if (rows.length === 0)
+      return res.status(404).json({ error: 'Certificate not found' });
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch record' });
+  }
+});
+
+// CREATE new record
+app.post('/bhert-certificate-normal', async (req, res) => {
+  try {
+    const {
+      resident_id,
+      full_name,
+      address,
+      requestor,
+      purpose,
+      date_issued,
+      transaction_number,
+    } = req.body;
+
+    if (
+      !resident_id ||
+      !full_name ||
+      !address ||
+      !requestor ||
+      !purpose ||
+      !date_issued
+    ) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Generate transaction number if not provided
+    const finalTransactionNumber =
+      transaction_number || generateTransactionNumber();
+
+    // Check for duplicate transaction number
+    const [existing] = await pool.query(
+      'SELECT bhert_certificate_normal_id FROM bhert_certificate_normal WHERE transaction_number = ?',
+      [finalTransactionNumber]
+    );
+
+    // If exists, regenerate to avoid duplicate
+    const newTxnNum =
+      existing.length > 0 ? generateTransactionNumber() : finalTransactionNumber;
+
+    const [result] = await pool.query(
+      `INSERT INTO bhert_certificate_normal
+       (resident_id, full_name, address, requestor, purpose, date_issued, transaction_number)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [resident_id, full_name, address, requestor, purpose, date_issued, newTxnNum]
+    );
+
+    const [rows] = await pool.query(
+      `SELECT * FROM bhert_certificate_normal WHERE bhert_certificate_normal_id = ?`,
+      [result.insertId]
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create record' });
+  }
+});
+
+// UPDATE existing record
+app.put('/bhert-certificate-normal/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      resident_id,
+      full_name,
+      address,
+      requestor,
+      purpose,
+      date_issued,
+      transaction_number,
+    } = req.body;
+
+    if (
+      !full_name ||
+      !address ||
+      !requestor ||
+      !purpose ||
+      !date_issued
+    ) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Validate transaction number uniqueness if updated
+    if (transaction_number) {
+      const [existing] = await pool.query(
+        'SELECT bhert_certificate_normal_id FROM bhert_certificate_normal WHERE transaction_number = ? AND bhert_certificate_normal_id != ?',
+        [transaction_number, id]
+      );
+      if (existing.length > 0)
+        return res.status(400).json({ error: 'Transaction number already exists' });
+    }
+
+    const [result] = await pool.query(
+      `UPDATE bhert_certificate_normal
+       SET resident_id = ?, full_name = ?, address = ?, requestor = ?,
+           purpose = ?, date_issued = ?, transaction_number = COALESCE(?, transaction_number),
+           date_updated = NOW()
+       WHERE bhert_certificate_normal_id = ?`,
+      [
+        resident_id,
+        full_name,
+        address,
+        requestor,
+        purpose,
+        date_issued,
+        transaction_number,
+        id,
+      ]
+    );
+
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: 'Record not found' });
+
+    const [updatedRows] = await pool.query(
+      `SELECT * FROM bhert_certificate_normal WHERE bhert_certificate_normal_id = ?`,
+      [id]
+    );
+
+    res.json(updatedRows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update record' });
+  }
+});
+
+// DELETE record (soft delete)
+app.delete('/bhert-certificate-normal/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [result] = await pool.query(
+      `UPDATE bhert_certificate_normal
+       SET is_active = FALSE, date_updated = NOW()
+       WHERE bhert_certificate_normal_id = ?`,
+      [id]
+    );
+
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: 'Record not found' });
+
+    res.json({ message: 'Record deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete record' });
+  }
+});
+
 
 
 

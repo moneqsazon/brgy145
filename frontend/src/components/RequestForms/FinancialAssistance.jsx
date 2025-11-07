@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { useNavigate } from "react-router-dom";
 
 import CaloocanLogo from "../../assets/CaloocanLogo.png";
 import Logo145 from "../../assets/Logo145.png";
 import BagongPilipinas from "../../assets/BagongPilipinas.png";
+import WordName from "../../assets/WordName.png";
 
 import {
   Container,
@@ -23,10 +25,20 @@ import {
   Chip,
   Stack,
   Autocomplete,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Tabs,
   Tab,
   createTheme,
   ThemeProvider,
+  Avatar,
+  Badge,
+  Tooltip,
+  Fab,
+  AppBar,
+  Toolbar,
 } from "@mui/material";
 
 import {
@@ -39,115 +51,333 @@ import {
   Delete as DeleteIcon,
   Description as FileTextIcon,
   QrCodeScanner as QrCodeIcon,
+  Receipt as ReceiptIcon,
   Print as PrintIcon,
   ZoomIn as ZoomInIcon,
   ZoomOut as ZoomOutIcon,
   RestartAlt as ResetIcon,
+  Folder as FolderIcon,
+  Dashboard as DashboardIcon,
+  Article as ArticleIcon,
 } from "@mui/icons-material";
+import { useMediaQuery } from "@mui/material";
 
+// Define the custom theme (same as Permit to Travel)
 const theme = createTheme({
   palette: {
-    primary: { main: "#41644A", light: "#A0B2A6", dark: "#0D4715" },
-    success: { main: "#41644A" },
-    background: { default: "#F1F0E9", paper: "#FFFFFF" },
-    text: { primary: "#0D4715" },
+    primary: {
+      main: '#41644A', // Darker green from palette
+      light: '#A0B2A6', // Lighter shade for hover/focus
+      dark: '#0D4715', // Even darker green for strong accents
+    },
+    secondary: {
+      main: '#E9762B', // Orange from palette for highlighting
+    },
+    success: {
+      main: '#41644A', // Darker green from palette
+      light: '#A0B2A6',
+      dark: '#0D4715',
+    },
+    background: {
+      default: '#F1F0E9', // Off-white/light beige
+      paper: '#FFFFFF',
+    },
+    text: {
+      primary: '#000000', // Black for main text
+      secondary: '#41644A', // Another shade for secondary text
+    },
+    error: {
+      main: '#E9762B',
+    },
   },
   components: {
     MuiButton: {
       styleOverrides: {
-        root: { textTransform: "none", fontWeight: 600, borderRadius: 8 },
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: 8,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          '&:hover': {
+            boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+          },
+        },
+        containedPrimary: {
+          background: 'linear-gradient(45deg, #41644A 30%, #527D60 90%)',
+        },
+        containedSecondary: {
+          background: 'linear-gradient(45deg, #E9762B 30%, #F4944D 90%)',
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+          },
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          minHeight: 48,
+          color: '#000000',
+          '&.Mui-selected': {
+            color: '#41644A',
+          },
+        },
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          color: '#000000',
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          color: '#000000',
+          '&.Mui-focused': {
+            color: '#41644A',
+          },
+        },
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          color: '#000000',
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#000000',
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#41644A',
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#41644A',
+          },
+        },
+      },
+    },
+    MuiAutocomplete: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#000000',
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#41644A',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#41644A',
+            },
+          },
+        },
       },
     },
   },
 });
 
 export default function FinancialAssistance() {
-  const apiBase = "http://localhost:5000"; // adjust to http://localhost:5000/api if required
+  const apiBase = 'http://localhost:5000';
+  const navigate = useNavigate();
 
   const [records, setRecords] = useState([]);
-  const [residents, setResidents] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("form");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [transactionSearch, setTransactionSearch] = useState("");
-  const [qrCodeUrl, setQrCodeUrl] = useState("");
-  const [zoomLevel, setZoomLevel] = useState(0.75);
+  const [activeTab, setActiveTab] = useState('form');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [transactionSearch, setTransactionSearch] = useState('');
+  const [residents, setResidents] = useState([]);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(0.75); // Default zoom level
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [formData, setFormData] = useState({
-    financial_assistance_id: "",
-    resident_id: "",
-    full_name: "",
-    age: "",
-    dob: "",
-    address: "",
-    occupation: "",
-    purpose: "",
-    monthly_income: "",
-    date_issued: new Date().toISOString().split("T")[0],
-    transaction_number: "",
+    resident_id: '',
+    full_name: '',
+    address: '',
+    dob: '',
+    age: '',
+    occupation: '',
+    purpose: '',
+    monthly_income: '',
+    date_issued: new Date().toISOString().split('T')[0],
+    transaction_number: '', // New field for transaction number
     is_active: 1,
-    date_created: "",
+    date_created: '',
   });
 
-  // Utility: format date
+  // Helper function to format date consistently without timezone issues
   function formatDateDisplay(dateString) {
-    if (!dateString) return "";
-    const dateOnly = dateString.includes("T") ? dateString.split("T")[0] : dateString;
-    const [year, month, day] = dateOnly.split("-");
+    if (!dateString) return '';
+
+    // Extract just the date part if it's a datetime string
+    const dateOnly = dateString.includes('T')
+      ? dateString.split('T')[0]
+      : dateString;
+
+    // Parse the date components
+    const [year, month, day] = dateOnly.split('-');
+
+    // Format as month name, day, year
     const monthNames = [
-      "January","February","March","April","May","June",
-      "July","August","September","October","November","December"
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
-    return `${monthNames[parseInt(month,10)-1]} ${parseInt(day,10)}, ${year}`;
+
+    return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`;
   }
 
+  // Helper function to format date and time
   function formatDateTimeDisplay(dateString) {
-    if (!dateString) return "";
+    if (!dateString) return '';
+
+    // Create a new Date object from the string
     const date = new Date(dateString);
+
+    // Format as month name, day, year, time
     const monthNames = [
-      "January","February","March","April","May","June",
-      "July","August","September","October","November","December"
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
+
     const month = monthNames[date.getMonth()];
     const day = date.getDate();
     const year = date.getFullYear();
+
+    // Format time with AM/PM
     let hours = date.getHours();
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12 || 12;
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+
     return `${month} ${day}, ${year} ${hours}:${minutes} ${ampm}`;
   }
 
-  function generateTransactionNumber() {
-    const date = new Date();
-    const yy = String(date.getFullYear()).slice(-2);
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
-    const dd = String(date.getDate()).padStart(2, "0");
-    const rand = Math.floor(100000 + Math.random() * 900000);
-    return `FA-${yy}${mm}${dd}-${rand}`;
+  // Helper function to calculate age from date string
+  function calculateAge(dateString) {
+    if (!dateString) return '';
+
+    const [year, month, day] = dateString.split('-');
+    const birthDate = new Date(
+      parseInt(year),
+      parseInt(month) - 1,
+      parseInt(day)
+    );
+    const today = new Date();
+
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    return age.toString();
   }
 
-  // store certificate data to localStorage for verification page (works for saved and draft)
-  function storeCertificateData(cert) {
-    if (!cert) return;
-    const existing = JSON.parse(localStorage.getItem("certificates") || "{}");
-    const key = cert.financial_assistance_id || `draft-${cert.transaction_number || "no-txn"}`;
-    existing[key] = cert;
-    localStorage.setItem("certificates", JSON.stringify(existing));
+  // Generate a unique transaction number
+  function generateTransactionNumber() {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const random =
+      Math.floor(Math.random() * 900) +
+      (100) // 3-digit random number
+        .toString()
+        .padStart(3, '0');
+    return `FA-${year}${month}${day}-${random}`;
+  }
+
+  // Store certificate data in localStorage for QR code verification
+  function storeCertificateData(certificateData) {
+    if (!certificateData.financial_assistance_id) return;
+
+    // Get existing certificates from localStorage
+    const existingCertificates = JSON.parse(
+      localStorage.getItem('certificates') || '{}'
+    );
+
+    // Add or update the certificate
+    existingCertificates[certificateData.financial_assistance_id] = certificateData;
+
+    // Store back to localStorage
+    localStorage.setItem('certificates', JSON.stringify(existingCertificates));
   }
 
   async function loadResidents() {
     try {
       const res = await fetch(`${apiBase}/residents`);
       const data = await res.json();
-      setResidents(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.warn("Could not load residents:", err);
+      // Format dates properly when loading residents - extract only YYYY-MM-DD
+      const formattedResidents = data.map((resident) => ({
+        ...resident,
+        dob: resident.dob ? resident.dob.split('T')[0] : '',
+      }));
+      setResidents(formattedResidents);
+    } catch (e) {
+      console.error(e);
     }
   }
+
+  useEffect(() => {
+    loadResidents();
+    loadRecords();
+  }, []);
 
   async function loadRecords() {
     try {
@@ -159,168 +389,225 @@ export default function FinancialAssistance() {
               financial_assistance_id: r.financial_assistance_id,
               resident_id: r.resident_id,
               full_name: r.full_name,
-              age: String(r.age ?? ""),
-              dob: r.dob ? r.dob.split("T")[0] : "",
-              address: r.address || "",
-              occupation: r.occupation || "",
-              purpose: r.purpose || "",
-              monthly_income: r.monthly_income || "",
-              date_issued: r.date_issued ? r.date_issued.split("T")[0] : "",
-              transaction_number: r.transaction_number || generateTransactionNumber(),
-              is_active: r.is_active ?? 1,
+              address: r.address,
+              dob: r.dob?.split('T')[0] || '',
+              age: String(r.age ?? ''),
+              occupation: r.occupation || '',
+              purpose: r.purpose || '',
+              monthly_income: r.monthly_income || '',
+              date_issued: r.date_issued?.split('T')[0] || '',
               date_created: r.date_created,
+              transaction_number:
+                r.transaction_number || generateTransactionNumber(), // Generate if missing
+              is_active: r.is_active ?? 1,
             }))
           : []
       );
     } catch (e) {
-      console.error("Failed to load financial assistance records", e);
+      console.error(e);
     }
   }
 
-  useEffect(() => {
-    loadResidents();
-    loadRecords();
-  }, []);
+  function handleBirthdayChange(dob) {
+    if (dob) {
+      const age = calculateAge(dob);
+      setFormData({ ...formData, dob, age });
+    } else {
+      setFormData({ ...formData, dob: '', age: '' });
+    }
+  }
 
-  // display chooses what to show in preview
   const display = useMemo(() => {
     if (editingId || isFormOpen) return formData;
     if (selectedRecord) return selectedRecord;
     return formData;
   }, [editingId, isFormOpen, selectedRecord, formData]);
 
-  // QR generation: per your request, QR is visible even if not saved - but only when full_name exists
+  // Generate QR code with URL for PDF download
   useEffect(() => {
-    const makeQr = async () => {
-      if (!display || !display.full_name) {
-        setQrCodeUrl("");
-        return;
-      }
-      const content = `Financial Assistance\nTransaction: ${display.transaction_number || "N/A"}\nName: ${display.full_name}\nIssued: ${display.date_issued || ""}`;
-      try {
-        const url = await QRCode.toDataURL(content, { width: 140, margin: 1 });
-        setQrCodeUrl(url);
-        // also store cert (draft or saved) for verify page to read
+    const generateQRCode = async () => {
+      if (display.financial_assistance_id || display.full_name) {
+        // Store the certificate data in localStorage
         storeCertificateData(display);
-      } catch (err) {
-        console.error("QR error", err);
+
+        // Create a URL that points to a verification page
+        // Using window.location.origin to get the current domain
+        const verificationUrl = `${
+          window.location.origin
+        }/verify-certificate?id=${display.financial_assistance_id || 'draft'}`;
+
+        const qrContent = `CERTIFICATE VERIFICATION:
+        𝗧𝗿𝗮𝗻𝘀𝗮𝗰𝘁𝗶𝗼𝗻 𝗡𝗼: ${display.transaction_number || 'N/A'}
+        Name: ${display.full_name}
+        Date Issued: ${
+        display.date_created
+        ? formatDateTimeDisplay(display.date_created)
+        : new Date().toLocaleString()
+        }
+        Document Type: Financial Assistance
+       
+        Ⓒ RRMS | BARANGAY 145
+        CALOOCAN CITY
+        ALL RIGHTS RESERVED
+        `;
+
+        try {
+          const qrUrl = await QRCode.toDataURL(qrContent, {
+            width: 140,
+            margin: 1,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF',
+            },
+            errorCorrectionLevel: 'L',
+          });
+          setQrCodeUrl(qrUrl);
+        } catch (err) {
+          console.error('Failed to generate QR code:', err);
+        }
+      } else {
+        setQrCodeUrl('');
       }
     };
-    makeQr();
-  }, [display.full_name, display.transaction_number, display.date_issued, display.financial_assistance_id]);
+
+    generateQRCode();
+  }, [display]);
 
   function toServerPayload(data) {
     return {
       resident_id: data.resident_id || null,
       full_name: data.full_name,
-      age: data.age ? Number(data.age) : null,
+      address: data.address,
       dob: data.dob || null,
-      address: data.address || null,
+      age: data.age ? Number(data.age) : null,
       occupation: data.occupation || null,
       purpose: data.purpose || null,
       monthly_income: data.monthly_income || null,
-      date_issued: data.date_issued || null,
-      transaction_number: data.transaction_number,
+      date_issued: data.date_issued,
+      transaction_number: data.transaction_number, // Include transaction number
       is_active: data.is_active ?? 1,
     };
   }
 
   async function handleCreate() {
     try {
-      const tx = generateTransactionNumber();
-      const updated = { ...formData, transaction_number: tx, date_created: new Date().toISOString() };
+      // Generate a transaction number for new certificates
+      const transactionNumber = generateTransactionNumber();
+      const updatedFormData = {
+        ...formData,
+        transaction_number: transactionNumber,
+        date_created: new Date().toISOString(), // Add current timestamp
+      };
+
       const res = await fetch(`${apiBase}/financial-assistance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toServerPayload(updated)),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(toServerPayload(updatedFormData)),
       });
-      if (!res.ok) throw new Error("Create failed");
+      if (!res.ok) throw new Error('Create failed');
       const created = await res.json();
-      const newRec = { ...updated, financial_assistance_id: created.financial_assistance_id };
+      const newRec = {
+        ...updatedFormData,
+        financial_assistance_id: created.financial_assistance_id,
+      };
+
       setRecords([newRec, ...records]);
       setSelectedRecord(newRec);
+
+      // Store the new certificate data
       storeCertificateData(newRec);
+
       resetForm();
-      setActiveTab("records");
+      setActiveTab('records');
     } catch (e) {
       console.error(e);
-      alert("Failed to create record");
+      alert('Failed to create record');
     }
   }
 
   async function handleUpdate() {
     try {
       const res = await fetch(`${apiBase}/financial-assistance/${editingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(toServerPayload(formData)),
       });
-      if (!res.ok) throw new Error("Update failed");
+      if (!res.ok) throw new Error('Update failed');
       const updated = { ...formData, financial_assistance_id: editingId };
-      setRecords(records.map((r) => (r.financial_assistance_id === editingId ? updated : r)));
+      setRecords(
+        records.map((r) => (r.financial_assistance_id === editingId ? updated : r))
+      );
       setSelectedRecord(updated);
+
+      // Store the updated certificate data
       storeCertificateData(updated);
+
       resetForm();
-      setActiveTab("records");
+      setActiveTab('records');
     } catch (e) {
       console.error(e);
-      alert("Failed to update record");
+      alert('Failed to update record');
     }
   }
 
   function handleEdit(record) {
-    setFormData({
-      ...record,
-      date_issued: record.date_issued || record.dateIssued || "",
-    });
+    setFormData({ ...record });
     setEditingId(record.financial_assistance_id);
     setIsFormOpen(true);
-    setActiveTab("form");
+    setActiveTab('form');
   }
 
   async function handleDelete(id) {
-    if (!window.confirm("Delete this record?")) return;
+    if (!window.confirm('Delete this record?')) return;
     try {
-      const res = await fetch(`${apiBase}/financial-assistance/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
+      const res = await fetch(`${apiBase}/financial-assistance/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Delete failed');
       setRecords(records.filter((r) => r.financial_assistance_id !== id));
       if (selectedRecord?.financial_assistance_id === id) setSelectedRecord(null);
-      const existing = JSON.parse(localStorage.getItem("certificates") || "{}");
-      delete existing[id];
-      localStorage.setItem("certificates", JSON.stringify(existing));
+
+      // Remove from localStorage
+      const existingCertificates = JSON.parse(
+        localStorage.getItem('certificates') || '{}'
+      );
+      delete existingCertificates[id];
+      localStorage.setItem(
+        'certificates',
+        JSON.stringify(existingCertificates)
+      );
     } catch (e) {
       console.error(e);
-      alert("Failed to delete record");
+      alert('Failed to delete record');
     }
   }
 
   function handleView(record) {
-    setSelectedRecord(record);
-    setFormData({ ...record });
-    setEditingId(record.financial_assistance_id);
-    setIsFormOpen(true);
-    setActiveTab("form");
+    setSelectedRecord(record); // Set selected record for display
+    setFormData({ ...record }); // Also populate form data for QR generation/dialog
+    setEditingId(record.financial_assistance_id); // To indicate viewing a specific record
+    setIsFormOpen(true); // Keep the form open with the record details
+    setActiveTab('form');
   }
 
   function resetForm() {
     setFormData({
-      financial_assistance_id: "",
-      resident_id: "",
-      full_name: "",
-      age: "",
-      dob: "",
-      address: "",
-      occupation: "",
-      purpose: "",
-      monthly_income: "",
-      date_issued: new Date().toISOString().split("T")[0],
-      transaction_number: "",
+      resident_id: '',
+      full_name: '',
+      address: '',
+      dob: '',
+      age: '',
+      occupation: '',
+      purpose: '',
+      monthly_income: '',
+      date_issued: new Date().toISOString().split('T')[0],
+      transaction_number: '',
       is_active: 1,
-      date_created: "",
+      date_created: '',
     });
     setEditingId(null);
     setIsFormOpen(false);
-    setSelectedRecord(null);
+    setSelectedRecord(null); // Clear selected record
   }
 
   function handleSubmit() {
@@ -332,210 +619,552 @@ export default function FinancialAssistance() {
     () =>
       records.filter(
         (r) =>
-          (r.full_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (r.address || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (r.purpose || "").toLowerCase().includes(searchTerm.toLowerCase())
+          r.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          r.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (r.purpose || '').toLowerCase().includes(searchTerm.toLowerCase())
       ),
     [records, searchTerm]
   );
 
+  // Filter records by transaction number
   const transactionFilteredRecords = useMemo(
     () =>
-      records.filter((r) => (r.transaction_number || "").toLowerCase().includes(transactionSearch.toLowerCase())),
+      records.filter((r) =>
+        r.transaction_number
+          .toLowerCase()
+          .includes(transactionSearch.toLowerCase())
+      ),
     [records, transactionSearch]
   );
 
-  function handleTransactionSearch() {
-    if (!transactionSearch) return;
-    const found = records.find((r) => (r.transaction_number || "").toLowerCase() === transactionSearch.toLowerCase());
-    if (found) {
-      handleView(found);
-    } else {
-      alert("No certificate found with this transaction number");
-    }
-  }
-
+  // Generate PDF function
   async function generatePDF() {
-    if (!display) return;
     if (!display.financial_assistance_id) {
-      alert("Please save the record first before downloading PDF");
+      alert('Please save the record first before downloading PDF');
       return;
     }
+
     setIsGeneratingPDF(true);
+
     try {
-      const el = document.getElementById("certificate-preview");
-      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "portrait", unit: "in", format: [8.5, 11] });
-      pdf.addImage(imgData, "PNG", 0, 0, 8.5, 11);
+      const certificateElement = document.getElementById('certificate-preview');
 
-      // metadata page
-      pdf.addPage();
-      pdf.setFontSize(18);
-      pdf.setFont(undefined, "bold");
-      pdf.text("Certificate Verification Information", 0.5, 0.75);
-      pdf.setLineWidth(0.02);
-      pdf.line(0.5, 0.85, 8, 0.85);
-      pdf.setFontSize(12);
-      pdf.setFont(undefined, "normal");
+      // --- 1. Remove the zoom (scale) from the preview's parent while exporting ---
+      const parentOfPreview = certificateElement.parentNode;
+      const prevTransform = parentOfPreview.style.transform;
+      const prevTransformOrigin = parentOfPreview.style.transformOrigin;
 
-      const createdDate = display.date_created ? formatDateTimeDisplay(display.date_created) : new Date().toLocaleString();
-      let yPos = 1.2;
-      const lineHeight = 0.25;
-      const details = [
-        `Certificate Type: Financial Assistance`,
-        `Certificate ID: ${display.financial_assistance_id}`,
-        `Transaction Number: ${display.transaction_number}`,
-        ``,
-        `Full Name: ${display.full_name}`,
-        `Age: ${display.age}`,
-        `DOB: ${display.dob}`,
-        `Address: ${display.address}`,
-        `Occupation: ${display.occupation}`,
-        `Purpose: ${display.purpose}`,
-        `Monthly Income: ${display.monthly_income}`,
-        ``,
-        `Date Issued: ${formatDateDisplay(display.date_issued)}`,
-        `Date Created (E-Signature Applied): ${createdDate}`,
-        ``,
-        `Issued by: Punong Barangay Arnold Dondonayos`,
-        `Barangay: Barangay 145 Zone 13 Dist. 1, Caloocan City`,
-        ``,
-        `QR/Verification URL: ${window.location.origin}/verify-certificate?id=${display.financial_assistance_id}`,
-      ];
-      details.forEach((line) => {
-        pdf.text(line, 0.5, yPos);
-        yPos += lineHeight;
+      parentOfPreview.style.transform = 'scale(1)';
+      parentOfPreview.style.transformOrigin = 'top center';
+
+      // --- 2. Wait a short moment for layout to apply ---
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // --- 3. Capture crisp certificate at high scale ---
+      const canvas = await html2canvas(certificateElement, {
+        scale: 3, // High scale for better quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
       });
 
-      const filename = `Financial_Assistance_${display.financial_assistance_id}_${(display.full_name || "").replace(/\s+/g, "_")}.pdf`;
-      pdf.save(filename);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to generate PDF");
+      // --- 4. Restore zoom to preview ---
+      parentOfPreview.style.transform = prevTransform;
+      parentOfPreview.style.transformOrigin = prevTransformOrigin;
+
+      // --- 5. Output the PDF at 8.5x11 inches (US Letter) ---
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'in',
+        format: [8.5, 11],
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, 8.5, 11);
+
+      const fileName = `Financial_Assistance_${display.financial_assistance_id}_${display.full_name.replace(/\s+/g, '_')}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
     } finally {
       setIsGeneratingPDF(false);
     }
   }
 
   function handlePrint() {
+    // Check if there's a certificate to print
     if (!display.financial_assistance_id) {
-      alert("Please save first");
+      alert('Please save the record first before printing');
       return;
     }
-    const certificateElement = document.getElementById("certificate-preview");
-    const printWindow = window.open("", "_blank");
-    const certificateHTML = certificateElement.outerHTML;
-    printWindow.document.write(
-      `<!doctype html><html><head><title>Print</title><style>body{margin:0}#certificate-preview{width:8.5in;height:11in}</style></head><body>${certificateHTML}<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script></body></html>`
-    );
-    printWindow.document.close();
+
+    // 1. Get the certificate element
+    const certificateElement = document.getElementById('certificate-preview');
+    if (!certificateElement) {
+      alert('Certificate not found for printing.');
+      return;
+    }
+
+    // 2. Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px'; // Move it way off-screen
+    iframe.style.top = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    document.body.appendChild(iframe);
+
+    // 3. Write the certificate content and styles into the iframe
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Certificate</title>
+          <style>
+            @page {
+              size: 8.5in 11in;
+              margin: 0;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            #certificate-preview {
+              width: 8.5in;
+              height: 11in;
+              position: relative;
+              overflow: hidden;
+              background: white;
+              box-sizing: border-box;
+            }
+            #certificate-preview * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+          </style>
+        </head>
+        <body>
+          ${certificateElement.outerHTML}
+        </body>
+      </html>
+    `);
+    iframeDoc.close();
+
+    // 4. Trigger the print dialog once the iframe content is loaded
+    setTimeout(() => {
+      const iframeWindow = iframe.contentWindow || iframe;
+      iframeWindow.focus(); // Required for some browsers
+      iframeWindow.print();
+
+      // 5. Clean up by removing the iframe after the print dialog
+      window.onafterprint = () => {
+        document.body.removeChild(iframe);
+      };
+      // Fallback cleanup in case onafterprint doesn't fire
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    }, 250); // A short delay to render
   }
 
-  const handleZoomIn = () => setZoomLevel((p) => Math.min(p + 0.1, 2));
-  const handleZoomOut = () => setZoomLevel((p) => Math.max(p - 0.1, 0.3));
-  const handleResetZoom = () => setZoomLevel(0.75);
+  // Function to handle QR code click
+  const handleQrCodeClick = () => {
+    if (display.financial_assistance_id) {
+      // Open the verification URL in a new tab
+      const verificationUrl = `${window.location.origin}/verify-certificate?id=${display.financial_assistance_id}`;
+      window.open(verificationUrl, '_blank');
+    } else {
+      // Show a dialog with the certificate details (for unsaved draft)
+      setQrDialogOpen(true);
+    }
+  };
+
+  // Function to handle transaction number search
+  const handleTransactionSearch = () => {
+    if (!transactionSearch) return;
+
+    const foundRecord = records.find(
+      (r) =>
+        r.transaction_number.toLowerCase() === transactionSearch.toLowerCase()
+    );
+
+    if (foundRecord) {
+      setSelectedRecord(foundRecord);
+      setFormData({ ...foundRecord }); // Populate form data
+      setEditingId(foundRecord.financial_assistance_id); // Indicate viewing/editing
+      setIsFormOpen(true); // Open form view
+      setActiveTab('form'); // Switch to form tab
+    } else {
+      alert('No certificate found with this transaction number');
+    }
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel((prev) => Math.min(prev + 0.1, 2)); // Max zoom: 2x (200%)
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel((prev) => Math.max(prev - 0.1, 0.3)); // Min zoom: 0.3x (30%)
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(0.75); // Reset to default
+  };
 
   useEffect(() => {
-    const onKey = (e) => {
+    const handleKeyPress = (e) => {
+      // Check if Ctrl/Cmd is pressed
       if (e.ctrlKey || e.metaKey) {
-        if (e.key === "+" || e.key === "=") {
+        if (e.key === '=' || e.key === '+') {
           e.preventDefault();
           handleZoomIn();
-        }
-        if (e.key === "-") {
+        } else if (e.key === '-') {
           e.preventDefault();
           handleZoomOut();
-        }
-        if (e.key === "0") {
+        } else if (e.key === '0') {
           e.preventDefault();
           handleResetZoom();
         }
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
-  // when QR clicked - open verify page. If saved, pass id; if draft, use draft-<txn> key
-  function openVerifyPage() {
-    const id = display.financial_assistance_id;
-    if (id) {
-      window.open(`${window.location.origin}/verify-certificate?id=${id}`, "_blank");
-    } else {
-      // for draft: ensure certificate stored and open verify page using draft key
-      const key = `draft-${display.transaction_number || "no-txn"}`;
-      storeCertificateData({ ...display, financial_assistance_id: key });
-      window.open(`${window.location.origin}/verify-certificate?id=${encodeURIComponent(key)}`, "_blank");
-    }
-  }
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [zoomLevel]);
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-        {/* LEFT: Certificate preview */}
-        <Box sx={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", bgcolor: "background.default" }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 1, p: 2, bgcolor: "background.paper", borderBottom: 1, borderColor: "grey.200" }}>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <IconButton onClick={handleZoomOut} color="primary" sx={{ border: "1px solid", borderColor: "grey.300" }}>
-                <ZoomOutIcon />
-              </IconButton>
-              <Typography variant="body2" sx={{ minWidth: 60, textAlign: "center", fontWeight: 600 }}>
-                {Math.round(zoomLevel * 100)}%
-              </Typography>
-              <IconButton onClick={handleZoomIn} color="primary" sx={{ border: "1px solid", borderColor: "grey.300" }}>
-                <ZoomInIcon />
-              </IconButton>
-              <IconButton onClick={handleResetZoom} color="primary" size="small" sx={{ border: "1px solid", borderColor: "grey.300" }}>
-                <ResetIcon fontSize="small" />
-              </IconButton>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', bgcolor: 'background.default' }}>
+        {/* TOP HEADER */}
+        <Paper elevation={2} sx={{ zIndex: 10, borderRadius: 0 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            p: 2,
+            bgcolor: 'primary.main',
+            color: 'white'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar src={Logo145} sx={{ width: 48, height: 48 }} />
+              <Box>
+                <Typography variant="h5" fontWeight="bold">
+                  Financial Assistance
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Manage all records of Financial Assistance
+                </Typography>
+              </Box>
             </Box>
-
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={() => {
-                  if (display.financial_assistance_id) window.open(window.location.origin + `/verify-certificate?id=${display.financial_assistance_id}`, "_blank");
-                }}
-                startIcon={<QrCodeIcon />}
-                disabled={!display.financial_assistance_id}
-                sx={{ textTransform: "none", fontWeight: 600, px: 3 }}
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Badge badgeContent={records.length} color="secondary">
+                <Chip 
+                  icon={<FolderIcon />}
+                  label="Total Records" 
+                  sx={{ 
+                    bgcolor: "rgba(255,255,255,0.2)", 
+                    color: "white",
+                    fontWeight: 600
+                  }} 
+                />
+              </Badge>
+              
+              <Button 
+                variant="contained" 
+                color="secondary" 
+                startIcon={<AddIcon />} 
+                onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }}
+                sx={{ borderRadius: 20, px: 3 }}
               >
-                View Certificate Details
-              </Button>
-
-              <Button variant="contained" color="success" onClick={generatePDF} disabled={!display.financial_assistance_id || isGeneratingPDF} startIcon={<FileTextIcon />} sx={{ textTransform: "none", fontWeight: 600, px: 3 }}>
-                {isGeneratingPDF ? "Generating..." : "Download PDF"}
+                New Certificate
               </Button>
             </Box>
           </Box>
 
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-start", flex: 1, overflow: "auto", padding: "20px 0" }}>
-            <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: "top center" }}>
-              <div id="certificate-preview" style={{ position: "relative", width: "8.5in", height: "11in", boxShadow: "0 0 8px rgba(0,0,0,0.2)", background: "#fff", overflow: "hidden" }}>
-                {/* Logos */}
-                <img style={{ position: "absolute", width: "100px", height: "100px", top: "60px", left: "60px" }} src={CaloocanLogo} alt="Logo 1" />
-                <img style={{ position: "absolute", width: "100px", height: "100px", top: "60px", right: "40px" }} src={Logo145} alt="Logo 3" />
-                <img style={{ position: "absolute", opacity: 0.2, width: "550px", left: "50%", top: "270px", transform: "translateX(-50%)" }} src={Logo145} alt="Watermark" />
+          {/* NAVIGATION TABS */}
+          <Box sx={{ bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}>
+            <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+              <Tabs 
+                value={activeTab} 
+                onChange={(e, nv) => setActiveTab(nv)} 
+                variant="fullWidth"
+                sx={{ 
+                  "& .MuiTabs-indicator": { height: 3, borderRadius: "3px 3px 0 0" },
+                  minHeight: 48
+                }}
+              >
+                <Tab 
+                  icon={<ArticleIcon />} 
+                  label="Form" 
+                  value="form"
+                  iconPosition="start"
+                />
+                <Tab 
+                  icon={<FolderIcon />} 
+                  label={`Records (${records.length})`} 
+                  value="records"
+                  iconPosition="start"
+                />
+                <Tab 
+                  icon={<ReceiptIcon />} 
+                  label="Transaction" 
+                  value="transaction"
+                  iconPosition="start"
+                />
+              </Tabs>
+            </Box>
+          </Box>
+        </Paper>
 
-                {/* Header */}
-                <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "20px", fontWeight: "bold", fontFamily: '"Lucida Calligraphy", cursive', top: "50px" }}>
-                  Republic of the Philippines
-                </div>
-                <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "13pt", fontWeight: "bold", top: "84px" }}>
-                  CITY OF CALOOCAN
-                </div>
-                <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "15pt", fontWeight: "bold", top: "110px" }}>
-                  BARANGAY 145 ZONES 13 DIST. 1
-                </div>
-                <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "15pt", fontWeight: "bold", top: "138px" }}>
-                  Tel. No. 8711 - 7134
-                </div>
-                <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "12pt", fontWeight: "bold", top: "166px" }}>
-                  OFFICE OF THE BARANGAY CHAIRMAN
-                </div>
-                <div style={{ position: "absolute", top: "200px", width: "100%", textAlign: "center" }}>
+        {/* MAIN CONTENT AREA */}
+        <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* LEFT: Certificate preview */}
+          <Box sx={{ 
+            flex: 1, 
+            overflow: 'auto', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            bgcolor: 'background.default',
+            p: 2,
+            [theme.breakpoints.down('lg')]: { display: activeTab === "form" ? 'none' : 'flex' }
+          }}>
+            {/* ZOOM CONTROLS */}
+            <Paper elevation={1} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+              <Box sx={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 1
+              }}>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  <Tooltip title="Zoom Out">
+                    <IconButton onClick={handleZoomOut} color="primary" size="small">
+                      <ZoomOutIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="body2" sx={{ 
+                    minWidth: 60, 
+                    textAlign: "center", 
+                    fontWeight: 600,
+                    px: 1,
+                    py: 0.5,
+                    bgcolor: "background.paper",
+                    borderRadius: 1,
+                    color: "#000000"
+                  }}>
+                    {Math.round(zoomLevel * 100)}%
+                  </Typography>
+                  <Tooltip title="Zoom In">
+                    <IconButton onClick={handleZoomIn} color="primary" size="small">
+                      <ZoomInIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Reset Zoom">
+                    <IconButton onClick={handleResetZoom} color="primary" size="small">
+                      <ResetIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Tooltip title="Verify Certificate">
+                    <Button 
+                      variant="outlined" 
+                      color="primary" 
+                      onClick={handleQrCodeClick} 
+                      startIcon={<QrCodeIcon />} 
+                      disabled={!display.financial_assistance_id}
+                      size="small"
+                    >
+                      Verify
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Download PDF">
+                    <Button 
+                      variant="contained" 
+                      color="secondary" 
+                      onClick={generatePDF} 
+                      disabled={!display.financial_assistance_id || isGeneratingPDF} 
+                      startIcon={<FileTextIcon />}
+                      size="small"
+                    >
+                      {isGeneratingPDF ? "Generating..." : "Download"}
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Print">
+                    <Button 
+                      variant="outlined" 
+                      onClick={handlePrint} 
+                      disabled={!display.financial_assistance_id}
+                      startIcon={<PrintIcon />}
+                      size="small"
+                    >
+                      Print
+                    </Button>
+                  </Tooltip>
+                </Box>
+              </Box>
+            </Paper>
+
+            {/* CERTIFICATE PREVIEW */}
+            <Box sx={{ 
+              display: "flex", 
+              justifyContent: "center", 
+              alignItems: "flex-start", 
+              flex: 1, 
+              overflow: "auto",
+              p: 1
+            }}>
+              <Box sx={{ transform: `scale(${zoomLevel})`, transformOrigin: "top center" }}>
+                <div
+                  id="certificate-preview"
+                  style={{
+                    position: 'relative',
+                    width: '8.5in',
+                    height: '11in',
+                    boxShadow: '0 0 8px rgba(0,0,0,0.2)',
+                    background: '#fff',
+                    WebkitPrintColorAdjust: 'exact',
+                    printColorAdjust: 'exact',
+                    colorAdjust: 'exact',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Certificate content */}
+                  <img
+                    style={{
+                      position: 'absolute',
+                      width: '80px',
+                      height: '80px',
+                      top: '60px',
+                      left: '40px',
+                    }}
+                    src={CaloocanLogo}
+                    alt="Logo 1"
+                  />
+                  <img
+                    style={{
+                      position: 'absolute',
+                      width: '80px',
+                      height: '80px',
+                      top: '60px',
+                      left: '130px',
+                    }}
+                    src={BagongPilipinas}
+                    alt="Logo 2"
+                  />
+                  <img
+                    style={{
+                      position: 'absolute',
+                      width: '100px',
+                      height: '100px',
+                      top: '50px',
+                      right: '40px',
+                    }}
+                    src={Logo145}
+                    alt="Logo 3"
+                  />
+
+                  {/* Watermark */}
+                  <img
+                    style={{
+                      position: 'absolute',
+                      opacity: 0.1,
+                      width: '550px',
+                      left: '50%',
+                      top: '270px',
+                      transform: 'translateX(-50%)',
+                    }}
+                    src={Logo145}
+                    alt="Watermark"
+                  />
+                  {/* Header Text */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      whiteSpace: 'pre',
+                      textAlign: 'center',
+                      width: '100%',
+                      fontSize: '20px',
+                      fontWeight: 'bold',
+                      fontFamily: '"Lucida Calligraphy", cursive',
+                      top: '50px',
+                    }}
+                  >
+                    Republic of the Philippines
+                  </div>
+
+                  <div
+                    style={{
+                      position: 'absolute',
+                      whiteSpace: 'pre',
+                      textAlign: 'center',
+                      width: '100%',
+                      fontSize: '13pt',
+                      fontWeight: 'bold',
+                      fontFamily: 'Arial, sans-serif',
+                      top: '84px',
+                    }}
+                  >
+                    CITY OF CALOOCAN
+                  </div>
+
+                  <div
+                    style={{
+                      position: 'absolute',
+                      whiteSpace: 'pre',
+                      textAlign: 'center',
+                      width: '100%',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      fontFamily: '"Arial Black", sans-serif',
+                      top: '110px',
+                    }}
+                  >
+                    BARANGAY 145 ZONES 13 DIST. 1
+                  </div>
+
+                  <div
+                    style={{
+                      position: 'absolute',
+                      whiteSpace: 'pre',
+                      textAlign: 'center',
+                      width: '100%',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      fontFamily: '"Arial Black", sans-serif',
+                      top: '138px',
+                    }}
+                  >
+                    Tel. No. 8711 - 7134
+                  </div>
+
+                  <div
+                    style={{
+                      position: 'absolute',
+                      whiteSpace: 'pre',
+                      textAlign: 'center',
+                      width: '100%',
+                      fontSize: '19px',
+                      fontWeight: 'bold',
+                      fontFamily: '"Arial Black", sans-serif',
+                      top: '166px',
+                    }}
+                  >
+                    OFFICE OF THE BARANGAY CHAIRMAN
+                  </div>
+
+                  <div style={{ position: "absolute", top: "200px", width: "100%", textAlign: "center" }}>
                   <span style={{ fontFamily: "Times New Roman", fontSize: "20pt", fontWeight: "bold", display: "inline-block", color: "#0b7030", padding: "4px 70px", fontStyle: "italic", textDecoration: "underline" }}>
                     CERTIFICATION
                   </span>
@@ -583,152 +1212,380 @@ export default function FinancialAssistance() {
                   <div style={{ borderTop: "2px solid #000", width: "65%", margin: "auto" }} />
                   <div>Applicant's Signature</div>
 
-                  {/* QR shown only if full_name exists (per your request, visible even if not saved) */}
-                  {qrCodeUrl && (
-                    <div style={{ marginTop: 12 }}>
-                      <div onClick={openVerifyPage} style={{ cursor: "pointer", display: "inline-block" }} title="Click to verify this certificate">
-                        <img src={qrCodeUrl} alt="QR" style={{ width: 150, height: 150, border: "2px solid #000", padding: 5, background: "#fff" }} />
+                    {/* QR Code */}
+                    {qrCodeUrl && (
+                      <div style={{ marginTop: '15px' }}>
+                        <div
+                          onClick={handleQrCodeClick}
+                          style={{
+                            cursor: 'pointer',
+                            position: 'relative',
+                            display: 'inline-block',
+                          }}
+                          title="Click to view certificate details"
+                        >
+                          <img
+                            src={qrCodeUrl}
+                            alt="Verification QR Code"
+                            style={{
+                              width: '150px',
+                              height: '150px',
+                              border: '2px solid #000',
+                              padding: '5px',
+                              background: '#fff',
+                            }}
+                          />
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: 'rgba(255,255,255,0)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: 0,
+                              transition: 'opacity 0.3s',
+                              borderRadius: '4px',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.opacity = '0.7';
+                              e.currentTarget.style.backgroundColor =
+                                'rgba(255,255,255,0.8)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.opacity = '0';
+                              e.currentTarget.style.backgroundColor =
+                                'rgba(255,255,255,0)';
+                            }}
+                          >
+                            <QrCodeIcon
+                              sx={{
+                                fontSize: 40,
+                                color: theme.palette.success.main,
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '8pt',
+                            color: '#666',
+                            marginTop: '5px',
+                            fontWeight: 'normal',
+                          }}
+                        >
+                          {display.date_created
+                            ? formatDateTimeDisplay(display.date_created)
+                            : new Date().toLocaleString()}
+                        </div>
                       </div>
-                      <div style={{ fontSize: "8pt", color: "#666", marginTop: 6, fontWeight: "normal" }}>
-                        {display.date_created ? formatDateTimeDisplay(display.date_created) : new Date().toLocaleString()}
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+
+                 
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <style>{`@media print { body * { visibility: hidden; } #certificate-preview, #certificate-preview * { visibility: visible; } #certificate-preview { position: absolute; left: 0; top: 0; width: 8.5in; height: 11in; transform: none !important; } @page { size: portrait; margin: 0; } #certificate-preview * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }`}</style>
-        </Box>
-
-        {/* RIGHT: CRUD panel */}
-        <Container maxWidth="sm" disableGutters sx={{ height: "100vh" }}>
-          <Paper sx={{ bgcolor: "grey.50", borderLeft: 1, borderColor: "grey.300", display: "flex", flexDirection: "column" }}>
-            <Paper elevation={0} sx={{ position: "sticky", paddingTop: 5, zIndex: 10, bgcolor: "rgba(255,255,255,0.9)", backdropFilter: "blur(8px)", borderBottom: 1, borderColor: "grey.300" }}>
-              <Box sx={{ px: 2, py: 1.5, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>
-                  Financial Assistance
-                </Typography>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <Button variant="outlined" size="small" startIcon={<PrintIcon />} onClick={handlePrint} disabled={!display.financial_assistance_id} sx={{ color: "primary.main", borderColor: "primary.main" }}>
-                    Print
-                  </Button>
-                  <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }} color="primary">
-                    New
-                  </Button>
-                </Box>
               </Box>
+            </Box>
 
-              <Box sx={{ px: 1, pb: 1 }}>
-                <Paper sx={{ p: 0.5, bgcolor: "background.default", borderRadius: 2 }}>
-                  <Tabs value={activeTab} onChange={(e, nv) => setActiveTab(nv)} aria-label="financial tabs" variant="fullWidth" sx={{ minHeight: "unset", "& .MuiTabs-flexContainer": { gap: 0.5 } }}>
-                    <Tab value="form" label="Form" sx={{ minHeight: "unset", py: 1 }} />
-                    <Tab value="records" label={`Records (${records.length})`} sx={{ minHeight: "unset", py: 1 }} />
-                    <Tab value="transaction" label="Transaction" sx={{ minHeight: "unset", py: 1 }} />
-                  </Tabs>
-                </Paper>
-              </Box>
-            </Paper>
+            <style>
+              {`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #certificate-preview, #certificate-preview * {
+            visibility: visible;
+          }
+          #certificate-preview {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 8.5in;
+            height: 11in;
+            transform: none !important; /* Remove any transforms */
+          }
+          @page {
+            size: portrait;
+            margin: 0;
+          }
+          /* Ensure colors are preserved when printing */
+          #certificate-preview * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+        }
+      `}
+            </style>
+          </Box>
 
+          {/* RIGHT: FORM/RECORDS PANEL */}
+          <Box sx={{ 
+            width: { xs: '100%', md: '50%', lg: '40%' }, 
+            bgcolor: "background.paper", 
+            borderLeft: { xs: 0, md: 1 }, 
+            borderColor: "divider",
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
             {/* FORM */}
             {activeTab === "form" && (
-              <Box sx={{ flex: 1, p: 2, overflow: "auto" }}>
-                <Card sx={{ borderRadius: 3, boxShadow: 1 }}>
-                  <CardHeader
-                    title={<Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 600, color: "grey.800" }}>{editingId ? "Edit Record" : "New Financial Assistance Record"}</Typography>}
-                    subheader={selectedRecord && !editingId && <Typography variant="caption" sx={{ color: "grey.500" }}>Viewing: {selectedRecord.full_name}</Typography>}
-                    sx={{ borderBottom: 1, borderColor: "grey.200" }}
-                  />
-                  <CardContent>
-                    <Stack spacing={2}>
-                      {/* Resident Autocomplete (optional) */}
-                      <Autocomplete
-                        options={residents}
-                        getOptionLabel={(opt) => opt.full_name || ""}
-                        value={residents.find((r) => r.resident_id === formData.resident_id) || null}
-                       onChange={(e, nv) => {
-                      if (nv) {
-                        const birthDate = nv.dob ? new Date(nv.dob) : null;
-                        const age = birthDate ? Math.floor((new Date() - birthDate) / (365.25 * 24 * 60 * 60 * 1000)) : "";
-                        setFormData({
-                          ...formData,
-                          resident_id: nv.resident_id,
-                          full_name: nv.full_name || formData.full_name,
-                          address: nv.address || formData.address,
-                          dob: nv.dob ? nv.dob.split("T")[0] : formData.dob,
-                          age: String(age),
-                        });
-                      } else {
-                        setFormData({ ...formData, resident_id: "", full_name: "", age: "" });
-                      }
-                    }}
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+                    <ArticleIcon color="primary" />
+                    {editingId ? "Edit Certificate" : "New Financial Assistance"}
+                  </Typography>
+                  {selectedRecord && !editingId && (
+                    <Typography variant="body2" color="text.secondary">
+                      Viewing: {selectedRecord.full_name}
+                    </Typography>
+                  )}
+                </Paper>
 
-                        renderInput={(params) => <TextField {...params} label="Full Name *" variant="outlined" size="small" fullWidth />}
-                      />
-
-    
-
-                      <TextField label="Age *" type="number" variant="outlined" size="small" fullWidth value={formData.age} onChange={(e) => setFormData({ ...formData, age: e.target.value })} />
-
-                      <TextField label="Birthday *" type="date" variant="outlined" size="small" fullWidth InputLabelProps={{ shrink: true }} value={formData.dob} onChange={(e) => {
-                        const v = e.target.value;
-                        setFormData({ ...formData, dob: v });
-                        // auto-calc age
-                        if (v) {
-                          const birth = new Date(v);
-                          const today = new Date();
-                          const age = Math.floor((today - birth) / (365.25 * 24 * 60 * 60 * 1000));
-                          setFormData((prev) => ({ ...prev, age: String(age) }));
+                <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
+                  <Stack spacing={3}>
+                    <Autocomplete
+                      options={residents}
+                      getOptionLabel={(option) => option.full_name || ""}
+                      value={residents.find((r) => r.full_name === formData.full_name) || null}
+                      onChange={(e, nv) => {
+                        if (nv) {
+                          // Ensure date is properly formatted without timezone issues
+                          const dobFormatted = nv.dob ? nv.dob.slice(0, 10) : '';
+                          setFormData({
+                            ...formData,
+                            resident_id: nv.resident_id,
+                            full_name: nv.full_name,
+                            address: nv.address || '',
+                            dob: dobFormatted,
+                            age: nv.age ? String(nv.age) : '',
+                          });
+                        } else {
+                          setFormData({ ...formData, full_name: '' });
                         }
-                      }} />
+                      }}
+                      renderInput={(params) => (
+                        <TextField 
+                          {...params} 
+                          label="Full Name" 
+                          variant="outlined" 
+                          fullWidth 
+                          size="small"
+                          required
+                        />
+                      )}
+                    />
 
-                      <TextField label="Address *" variant="outlined" size="small" fullWidth multiline rows={2} value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                    <TextField 
+                      label="Address" 
+                      variant="outlined" 
+                      fullWidth 
+                      size="small"
+                      multiline 
+                      rows={2}
+                      value={formData.address} 
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })} 
+                      required
+                    />
 
-                      <TextField label="Occupation / Work" variant="outlined" size="small" fullWidth value={formData.occupation} onChange={(e) => setFormData({ ...formData, occupation: e.target.value })} />
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField 
+                          label="Birthday" 
+                          type="date" 
+                          variant="outlined" 
+                          fullWidth 
+                          size="small"
+                          InputLabelProps={{ shrink: true }} 
+                          value={formData.dob} 
+                          onChange={(e) => handleBirthdayChange(e.target.value)} 
+                          required
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField 
+                          label="Age" 
+                          variant="outlined" 
+                          fullWidth 
+                          size="small"
+                          value={formData.age} 
+                          InputProps={{ readOnly: true }}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              bgcolor: 'grey.100',
+                            },
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
 
-                      <TextField label="Purpose" variant="outlined" size="small" fullWidth value={formData.purpose} onChange={(e) => setFormData({ ...formData, purpose: e.target.value })} />
+                    <TextField 
+                      label="Occupation / Work" 
+                      variant="outlined" 
+                      fullWidth 
+                      size="small"
+                      value={formData.occupation} 
+                      onChange={(e) => setFormData({ ...formData, occupation: e.target.value })} 
+                    />
 
-                      <TextField label="Monthly Income" variant="outlined" size="small" fullWidth value={formData.monthly_income} onChange={(e) => setFormData({ ...formData, monthly_income: e.target.value })} placeholder="e.g. ₱3,000" />
+                    <TextField 
+                      label="Purpose" 
+                      variant="outlined" 
+                      fullWidth 
+                      size="small"
+                      value={formData.purpose} 
+                      onChange={(e) => setFormData({ ...formData, purpose: e.target.value })} 
+                    />
 
-                      <TextField label="Date Issued *" type="date" variant="outlined" size="small" fullWidth InputLabelProps={{ shrink: true }} value={formData.date_issued} onChange={(e) => setFormData({ ...formData, date_issued: e.target.value })} helperText={formData.date_issued ? (() => { const date = new Date(formData.date_issued); const day = date.getDate(); const month = date.toLocaleString("default", { month: "short" }); const year = date.getFullYear(); const suffix = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th"; return `Formatted: ${day}${suffix} day of ${month}, ${year}`; })() : "Select the date"} />
+                    <TextField 
+                      label="Monthly Income" 
+                      variant="outlined" 
+                      fullWidth 
+                      size="small"
+                      value={formData.monthly_income} 
+                      onChange={(e) => setFormData({ ...formData, monthly_income: e.target.value })} 
+                    />
 
-                      <Box sx={{ display: "flex", gap: 1, pt: 1 }}>
-                        <Button onClick={handleSubmit} variant="contained" startIcon={<SaveIcon />} fullWidth color="primary" sx={{ py: 1.25 }}>{editingId ? "Update" : "Save"}</Button>
-                        {(editingId || isFormOpen) && <Button onClick={resetForm} variant="outlined" startIcon={<CloseIcon />} color="primary" sx={{ py: 1.25 }}>Cancel</Button>}
-                      </Box>
-                    </Stack>
-                  </CardContent>
-                </Card>
+                    <TextField 
+                      label="Date Issued" 
+                      type="date" 
+                      variant="outlined" 
+                      fullWidth 
+                      size="small"
+                      InputLabelProps={{ shrink: true }} 
+                      value={formData.date_issued} 
+                      onChange={(e) => setFormData({ ...formData, date_issued: e.target.value })} 
+                      required
+                    />
+
+                    <Box sx={{ display: "flex", gap: 2, pt: 2 }}>
+                      <Button 
+                        onClick={handleSubmit} 
+                        variant="contained" 
+                        startIcon={<SaveIcon />} 
+                        fullWidth 
+                        color="primary"
+                        size="large"
+                      >
+                        {editingId ? "Update" : "Save"}
+                      </Button>
+                      {(editingId || isFormOpen) && (
+                        <Button 
+                          onClick={resetForm} 
+                          variant="outlined" 
+                          startIcon={<CloseIcon />} 
+                          color="primary"
+                          size="large"
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                    </Box>
+                  </Stack>
+                </Box>
               </Box>
             )}
 
             {/* RECORDS */}
             {activeTab === "records" && (
-              <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                <Box sx={{ p: 1.5 }}>
-                  <TextField fullWidth size="small" placeholder="Search records..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon sx={{ color: "grey.400", fontSize: 20 }} /></InputAdornment>) }} />
-                </Box>
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                    <FolderIcon color="primary" />
+                    Certificate Records
+                  </Typography>
+                  <TextField 
+                    fullWidth 
+                    size="small" 
+                    placeholder="Search by name, address, or purpose" 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                    InputProps={{ 
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      ) 
+                    }} 
+                  />
+                </Paper>
 
-                <Box sx={{ flex: 1, overflow: "auto", px: 1.5, pb: 1.5 }}>
+                <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
                   {filteredRecords.length === 0 ? (
-                    <Paper sx={{ p: 3, textAlign: "center", color: "grey.500" }}><Typography variant="body2">{searchTerm ? "No records found" : "No records yet"}</Typography></Paper>
+                    <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
+                      <FolderIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                      <Typography variant="h6" gutterBottom>
+                        {searchTerm ? "No records found" : "No records yet"}
+                      </Typography>
+                      <Typography variant="body2">
+                        {searchTerm ? "Try a different search term" : "Create your first certificate to get started"}
+                      </Typography>
+                    </Paper>
                   ) : (
-                    <Stack spacing={1}>
+                    <Stack spacing={2}>
                       {filteredRecords.map((record) => (
-                        <Card key={record.financial_assistance_id} sx={{ boxShadow: 1, '&:hover': { boxShadow: 2 }, transition: "box-shadow 0.2s", borderLeft: "4px solid", borderColor: "primary.main" }}>
-                          <CardContent sx={{ p: 1.5 }}>
+                        <Card key={record.financial_assistance_id} sx={{ 
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          borderLeft: 4,
+                          borderColor: "primary.main",
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
                             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                               <Box sx={{ flex: 1 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{record.full_name}</Typography>
-                                <Typography variant="caption" sx={{ color: "grey.600", display: "block" }}>{record.address}</Typography>
-                                <Typography variant="caption" sx={{ color: "grey.700", display: "block", mt: 0.5 }}>{record.purpose}</Typography>
-                                <Typography variant="caption" sx={{ color: "grey.400", display: "block" }}>Issued: {formatDateDisplay(record.date_issued)}</Typography>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5, color: "#000000" }}>
+                                  {record.full_name}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                  {record.address}
+                                </Typography>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                                  {record.purpose && (
+                                    <Chip 
+                                      label={record.purpose} 
+                                      size="small" 
+                                      color="primary" 
+                                      variant="outlined" 
+                                    />
+                                  )}
+                                  <Typography variant="caption" color="text.secondary">
+                                    Issued: {formatDateDisplay(record.date_issued)}
+                                  </Typography>
+                                </Box>
                               </Box>
-                              <Box sx={{ display: "flex", gap: 0.5, ml: 1 }}>
-                                <IconButton size="small" onClick={() => handleView(record)} sx={{ color: "info.main" }} title="View"><EyeIcon sx={{ fontSize: 16 }} /></IconButton>
-                                <IconButton size="small" onClick={() => handleEdit(record)} sx={{ color: "success.main" }} title="Edit"><EditIcon sx={{ fontSize: 16 }} /></IconButton>
-                                <IconButton size="small" onClick={() => handleDelete(record.financial_assistance_id)} sx={{ color: "error.main" }} title="Delete"><DeleteIcon sx={{ fontSize: 16 }} /></IconButton>
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Tooltip title="View">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleView(record)} 
+                                    color="primary"
+                                  >
+                                    <EyeIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Edit">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleEdit(record)} 
+                                    color="success"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleDelete(record.financial_assistance_id)} 
+                                    color="error"
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
                               </Box>
                             </Box>
                           </CardContent>
@@ -740,54 +1597,265 @@ export default function FinancialAssistance() {
               </Box>
             )}
 
-            {/* TRANSACTION TAB */}
+            {/* TRANSACTION */}
             {activeTab === "transaction" && (
-              <Box sx={{ flex: 1, p: 2, overflow: "auto" }}>
-                <Card sx={{ borderRadius: 3, boxShadow: 1, mb: 2 }}>
-                  <CardHeader title={<Typography variant="h6">Search by Transaction Number</Typography>} sx={{ borderBottom: 1, borderColor: "grey.200" }} />
-                  <CardContent>
-                    <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-                      <TextField fullWidth size="small" placeholder="Enter transaction number (e.g., FA-240101-123456)" value={transactionSearch} onChange={(e) => setTransactionSearch(e.target.value)} InputProps={{ startAdornment: (<InputAdornment position="start"><FileTextIcon sx={{ color: "grey.400", fontSize: 20 }} /></InputAdornment>) }} />
-                      <Button variant="contained" color="primary" onClick={handleTransactionSearch} startIcon={<SearchIcon />} sx={{ px: 3 }}>Search</Button>
-                    </Box>
-                    <Typography variant="caption" color="text.secondary">Transaction numbers are generated automatically. Format: FA-YYMMDD-######</Typography>
-                  </CardContent>
-                </Card>
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                    <ReceiptIcon color="primary" />
+                    Transaction Search
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <TextField 
+                      fullWidth 
+                      size="small" 
+                      placeholder="Enter transaction number" 
+                      value={transactionSearch} 
+                      onChange={(e) => setTransactionSearch(e.target.value)} 
+                      InputProps={{ 
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <ReceiptIcon />
+                          </InputAdornment>
+                        ) 
+                      }} 
+                    />
+                    <Button 
+                      variant="contained" 
+                      color="primary" 
+                      onClick={handleTransactionSearch} 
+                      startIcon={<SearchIcon />}
+                    >
+                      Search
+                    </Button>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                    Format: FA-YYMMDD-XXX
+                  </Typography>
+                </Paper>
 
-                <Card sx={{ borderRadius: 3, boxShadow: 1 }}>
-                  <CardHeader title={<Typography variant="h6">Recent Transactions</Typography>} sx={{ borderBottom: 1, borderColor: "grey.200" }} />
-                  <CardContent>
-                    {transactionFilteredRecords.length === 0 ? (
-                      <Box sx={{ p: 3, textAlign: "center", color: "grey.500" }}>No transactions found</Box>
-                    ) : (
-                      <Stack spacing={1}>
-                        {transactionFilteredRecords.map((r) => (
-                          <Card key={r.financial_assistance_id} sx={{ boxShadow: 0, '&:hover': { boxShadow: 1 }, transition: "box-shadow 0.2s", borderLeft: 3, borderColor: "primary.main" }}>
-                            <CardContent sx={{ p: 1.5 }}>
-                              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                <Box>
-                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{r.full_name}</Typography>
-                                  <Typography variant="caption" sx={{ color: "primary.main" }}>{r.transaction_number}</Typography>
-                                  <Typography variant="caption" sx={{ display: "block", color: "grey.600" }}>{r.address}</Typography>
-                                  <Typography variant="caption" sx={{ color: "grey.400" }}>Issued: {formatDateDisplay(r.date_issued)}</Typography>
+                <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
+                  {transactionFilteredRecords.length === 0 ? (
+                    <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
+                      <ReceiptIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                      <Typography variant="h6" gutterBottom>
+                        No transactions found
+                      </Typography>
+                      <Typography variant="body2">
+                        Enter a transaction number to search
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    <Stack spacing={2}>
+                      {transactionFilteredRecords.map((r) => (
+                        <Card key={r.financial_assistance_id} sx={{ 
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          borderLeft: 4,
+                          borderColor: "secondary.main",
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5, color: "#000000" }}>
+                                  {r.full_name}
+                                </Typography>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                                  <Chip 
+                                    label={r.transaction_number} 
+                                    size="small" 
+                                    color="secondary" 
+                                    variant="outlined" 
+                                  />
                                 </Box>
-                                <Box sx={{ display: "flex", gap: 0.5 }}>
-                                  <IconButton size="small" onClick={() => handleView(r)} title="View"><EyeIcon sx={{ fontSize: 16 }} /></IconButton>
-                                  <IconButton size="small" onClick={() => handleEdit(r)} title="Edit"><EditIcon sx={{ fontSize: 16 }} /></IconButton>
-                                </Box>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                  {r.address}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Issued: {formatDateDisplay(r.date_issued)}
+                                </Typography>
                               </Box>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </Stack>
-                    )}
-                  </CardContent>
-                </Card>
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Tooltip title="View">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleView(r)} 
+                                    color="primary"
+                                  >
+                                    <EyeIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Edit">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleEdit(r)} 
+                                    color="success"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
               </Box>
             )}
-          </Paper>
-        </Container>
+          </Box>
+        </Box>
+
+        {/* FLOATING ACTION BUTTON FOR MOBILE */}
+        {isMobile && activeTab !== "form" && (
+          <Fab
+            color="primary"
+            aria-label="add"
+            sx={{
+              position: 'absolute',
+              bottom: 16,
+              right: 16,
+            }}
+            onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }}
+          >
+            <AddIcon />
+          </Fab>
+        )}
       </Box>
+
+      {/* QR Code Details Dialog */}
+      <Dialog
+        open={qrDialogOpen}
+        onClose={() => setQrDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
+          Certificate Details
+        </DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Certificate ID:
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                {display.financial_assistance_id || 'Draft (Not yet saved)'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Transaction Number:
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                {display.transaction_number || 'N/A'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Full Name:
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                {display.full_name}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Address:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.address}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Date of Birth:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.dob ? formatDateDisplay(display.dob) : 'N/A'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Age:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.age}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Occupation:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.occupation}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Purpose:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.purpose}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Monthly Income:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.monthly_income}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Date Issued:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {formatDateDisplay(display.date_issued)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Date Created:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.date_created
+                  ? formatDateTimeDisplay(display.date_created)
+                  : 'N/A'}
+              </Typography>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setQrDialogOpen(false)} color="primary">
+            Close
+          </Button>
+          {display.financial_assistance_id && (
+            <Button
+              onClick={() => {
+                const verificationUrl = `${window.location.origin}/verify-certificate?id=${display.financial_assistance_id}`;
+                window.open(verificationUrl, '_blank');
+                setQrDialogOpen(false);
+              }}
+              variant="contained"
+              color="primary"
+            >
+              Go to Verification Page
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </ThemeProvider>
   );
 }

@@ -27,8 +27,14 @@ import {
   Grid,
   createTheme,
   ThemeProvider,
+  Avatar,
+  Badge,
+  Tooltip,
+  Fab,
+  AppBar,
+  Toolbar,
+  Chip, // Added this import
 } from "@mui/material";
-
 import {
   Add as AddIcon,
   Save as SaveIcon,
@@ -39,23 +45,152 @@ import {
   Delete as DeleteIcon,
   Description as FileTextIcon,
   QrCodeScanner as QrCodeIcon,
+  Receipt as ReceiptIcon,
   Print as PrintIcon,
   ZoomIn as ZoomInIcon,
   ZoomOut as ZoomOutIcon,
   RestartAlt as ResetIcon,
+  Folder as FolderIcon,
+  Dashboard as DashboardIcon,
+  Article as ArticleIcon,
 } from "@mui/icons-material";
+import { useMediaQuery } from "@mui/material";
 
+// Define the custom theme matching Permit to Travel
 const theme = createTheme({
   palette: {
-    primary: { main: "#41644A", light: "#A0B2A6", dark: "#0D4715" },
-    success: { main: "#41644A" },
-    background: { default: "#F1F0E9", paper: "#FFFFFF" },
-    text: { primary: "#0D4715" },
+    primary: {
+      main: '#41644A', // Darker green from palette
+      light: '#A0B2A6', // Lighter shade for hover/focus
+      dark: '#0D4715', // Even darker green for strong accents
+    },
+    secondary: {
+      main: '#E9762B', // Orange from palette for highlighting
+    },
+    success: {
+      main: '#41644A', // Darker green from palette
+      light: '#A0B2A6',
+      dark: '#0D4715',
+    },
+    background: {
+      default: '#F1F0E9', // Off-white/light beige
+      paper: '#FFFFFF',
+    },
+    text: {
+      primary: '#000000', // Black for main text
+      secondary: '#41644A', // Another shade for secondary text
+    },
+    error: {
+      main: '#E9762B',
+    },
   },
   components: {
     MuiButton: {
       styleOverrides: {
-        root: { textTransform: "none", fontWeight: 600, borderRadius: 8 },
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: 8,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          '&:hover': {
+            boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+          },
+        },
+        containedPrimary: {
+          background: 'linear-gradient(45deg, #41644A 30%, #527D60 90%)',
+        },
+        containedSecondary: {
+          background: 'linear-gradient(45deg, #E9762B 30%, #F4944D 90%)',
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+          },
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          minHeight: 48,
+          color: '#000000',
+          '&.Mui-selected': {
+            color: '#41644A',
+          },
+        },
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          color: '#000000',
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          color: '#000000',
+          '&.Mui-focused': {
+            color: '#41644A',
+          },
+        },
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          color: '#000000',
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#000000',
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#41644A',
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#41644A',
+          },
+        },
+      },
+    },
+    MuiAutocomplete: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#000000',
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#41644A',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#41644A',
+            },
+          },
+        },
       },
     },
   },
@@ -76,6 +211,9 @@ export default function Cohabitation() {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [zoomLevel, setZoomLevel] = useState(0.75);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [formData, setFormData] = useState({
     certificate_of_cohabitation_id: "",
@@ -228,9 +366,32 @@ export default function Cohabitation() {
         return;
       }
       const verifyUrl = getVerifyUrl(display);
-      const content = `${verifyUrl}\nCertificate of Cohabitation\nTransaction: ${display.transaction_number || "N/A"}\nPartners: ${display.full_name1} / ${display.full_name2}\nStarted: ${display.date_started || ""}\nIssued: ${display.date_issued || ""}`;
+      const content = `CERTIFICATE VERIFICATION:
+        𝗧𝗿𝗮𝗻𝘀𝗮𝘁𝗶𝗼𝗻 𝗡𝗼: ${display.transaction_number || 'N/A'}
+        Name 1: ${display.full_name1}
+        Name 2: ${display.full_name2}
+        Date Started: ${display.date_started || ''}
+        Date Issued: ${
+        display.date_created
+        ? formatDateTimeDisplay(display.date_created)
+        : new Date().toLocaleString()
+        }
+        Document Type: Certificate of Cohabitation
+       
+        Ⓒ RRMS | BARANGAY 145
+        CALOOCAN CITY
+        ALL RIGHTS RESERVED
+        `;
       try {
-        const url = await QRCode.toDataURL(content, { width: 140, margin: 1 });
+        const url = await QRCode.toDataURL(content, { 
+          width: 140, 
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF',
+          },
+          errorCorrectionLevel: 'L',
+        });
         setQrCodeUrl(url);
         storeLocalDraft(display);
       } catch (err) {
@@ -404,24 +565,36 @@ export default function Cohabitation() {
 
       const createdDate = display.date_created ? formatDateTimeDisplay(display.date_created) : new Date().toLocaleString();
       pdf.addPage();
-      pdf.setFontSize(16);
-      pdf.text("Cohabitation Certificate - Verification", 0.5, 0.6);
+      pdf.setFontSize(18);
+      pdf.setFont(undefined, "bold");
+      pdf.text("Certificate Verification Information", 0.5, 0.6);
+      pdf.setLineWidth(0.02);
+      pdf.line(0.5, 0.85, 8, 0.85);
       pdf.setFontSize(12);
-      const lines = [
+      pdf.setFont(undefined, "normal");
+
+      let yPos = 1.1;
+      const lineHeight = 0.25;
+      const details = [
+        `Certificate Type: Certificate of Cohabitation`,
         `Certificate ID: ${display.certificate_of_cohabitation_id}`,
-        `Transaction: ${display.transaction_number}`,
-        `Partners: ${display.full_name1} / ${display.full_name2}`,
+        `Transaction Number: ${display.transaction_number}`,
+        ``,
+        `Name 1: ${display.full_name1}`,
+        `Name 2: ${display.full_name2}`,
         `Address: ${display.address}`,
-        `Started: ${display.date_started}`,
+        `Date Started: ${display.date_started}`,
         `Date Issued: ${formatDateDisplay(display.date_issued)}`,
-        `Witnesses: ${display.witness1_name || "-"} , ${display.witness2_name || "-"}`,
-        `Created: ${createdDate}`,
-        `Verify URL: ${getVerifyUrl(display)}`,
+        `Date Created (E-Signature Applied): ${createdDate}`,
+        ``,
+        `Issued by: Punong Barangay Arnold Dondonayos`,
+        `Barangay: Barangay 145 Zone 13 Dist. 1, Caloocan City`,
+        ``,
+        `QR Code URL: ${window.location.origin}/verify-cohabitation?id=${display.certificate_of_cohabitation_id}`,
       ];
-      let y = 1.1;
-      lines.forEach((ln) => {
-        pdf.text(ln, 0.5, y);
-        y += 0.25;
+      details.forEach((line) => {
+        pdf.text(line, 0.5, yPos);
+        yPos += lineHeight;
       });
 
       const filename = `Cohabitation_${display.certificate_of_cohabitation_id || "draft"}_${(display.full_name1||'').replace(/\s+/g,'_')}.pdf`;
@@ -435,12 +608,85 @@ export default function Cohabitation() {
   }
 
   function handlePrint() {
-    if (!display.certificate_of_cohabitation_id) { alert("Please save first"); return; }
+    if (!display.certificate_of_cohabitation_id) { 
+      alert("Please save the record first before printing"); 
+      return; 
+    }
+    
+    // 1. Get the certificate element
     const certificateElement = document.getElementById("certificate-preview");
-    const printWindow = window.open("", "_blank");
-    const certificateHTML = certificateElement.outerHTML;
-    printWindow.document.write(`<!doctype html><html><head><title>Print</title><style>body{margin:0}#certificate-preview{width:8.5in;height:11in}</style></head><body>${certificateHTML}<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script></body></html>`);
-    printWindow.document.close();
+    if (!certificateElement) {
+      alert('Certificate not found for printing.');
+      return;
+    }
+
+    // 2. Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px'; // Move it way off-screen
+    iframe.style.top = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    document.body.appendChild(iframe);
+
+    // 3. Write the certificate content and styles into the iframe
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Certificate</title>
+          <style>
+            @page {
+              size: 8.5in 11in;
+              margin: 0;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            #certificate-preview {
+              width: 8.5in;
+              height: 11in;
+              position: relative;
+              overflow: hidden;
+              background: white;
+              box-sizing: border-box;
+            }
+            #certificate-preview * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+          </style>
+        </head>
+        <body>
+          ${certificateElement.outerHTML}
+        </body>
+      </html>
+    `);
+    iframeDoc.close();
+
+    // 4. Trigger the print dialog once the iframe content is loaded
+    setTimeout(() => {
+      const iframeWindow = iframe.contentWindow || iframe;
+      iframeWindow.focus(); // Required for some browsers
+      iframeWindow.print();
+
+      // 5. Clean up by removing the iframe after the print dialog
+      window.onafterprint = () => {
+        document.body.removeChild(iframe);
+      };
+      // Fallback cleanup in case onafterprint doesn't fire
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    }, 250); // A short delay to render
   }
 
   const handleZoomIn = () => setZoomLevel((p) => Math.min(p + 0.1, 2));
@@ -497,215 +743,797 @@ export default function Cohabitation() {
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-        {/* LEFT: Certificate preview (preserve layout) */}
-        <Box sx={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", bgcolor: "background.default" }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 1, p: 2, bgcolor: "background.paper", borderBottom: 1, borderColor: "grey.200" }}>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <IconButton onClick={handleZoomOut} color="primary" sx={{ border: "1px solid", borderColor: "grey.300" }}><ZoomOutIcon /></IconButton>
-              <Typography variant="body2" sx={{ minWidth: 60, textAlign: "center", fontWeight: 600 }}>{Math.round(zoomLevel * 100)}%</Typography>
-              <IconButton onClick={handleZoomIn} color="primary" sx={{ border: "1px solid", borderColor: "grey.300" }}><ZoomInIcon /></IconButton>
-              <IconButton onClick={handleResetZoom} color="primary" size="small" sx={{ border: "1px solid", borderColor: "grey.300" }}><ResetIcon fontSize="small" /></IconButton>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', bgcolor: 'background.default' }}>
+        {/* TOP HEADER */}
+        <Paper elevation={2} sx={{ zIndex: 10, borderRadius: 0 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            p: 2,
+            bgcolor: 'primary.main',
+            color: 'white'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar src={Logo145} sx={{ width: 48, height: 48 }} />
+              <Box>
+                <Typography variant="h5" fontWeight="bold">
+                  Certificate of Cohabitation
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Manage all records of the Certificate of Cohabitation
+                </Typography>
+              </Box>
             </Box>
-
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Button variant="outlined" color="primary" onClick={() => { if (display.certificate_of_cohabitation_id) window.open(getVerifyUrl(display), "_blank"); }} startIcon={<QrCodeIcon />} disabled={!display.certificate_of_cohabitation_id} sx={{ textTransform: "none", fontWeight: 600, px: 3 }}>View Certificate Details</Button>
-              <Button variant="contained" color="success" onClick={generatePDF} disabled={!display.certificate_of_cohabitation_id || isGeneratingPDF} startIcon={<FileTextIcon />} sx={{ textTransform: "none", fontWeight: 600, px: 3 }}>{isGeneratingPDF ? "Generating..." : "Download PDF"}</Button>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Badge badgeContent={records.length} color="secondary">
+                <Chip 
+                  icon={<FolderIcon />}
+                  label="Total Records" 
+                  sx={{ 
+                    bgcolor: "rgba(255,255,255,0.2)", 
+                    color: "white",
+                    fontWeight: 600
+                  }} 
+                />
+              </Badge>
+              
+              <Button 
+                variant="contained" 
+                color="secondary" 
+                startIcon={<AddIcon />} 
+                onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }}
+                sx={{ borderRadius: 20, px: 3 }}
+              >
+                New Certificate
+              </Button>
             </Box>
           </Box>
 
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-start", flex: 1, overflow: "auto", padding: "20px 0" }}>
-            <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: "top center" }}>
-              {/* ===== Certificate preview - KEPT EXACT LAYOUT (values live update) ===== */}
-              <div id="certificate-preview" style={{ position: "relative", width: "8.5in", height: "11in", boxShadow: "0 0 8px rgba(0,0,0,0.2)", background: "#fff", overflow: "hidden" }}>
-                {/* Logos */}
-                <img style={{ position: "absolute", width: "100px", height: "100px", top: "60px", left: "60px" }} src={CaloocanLogo} alt="Logo 1" />
-                <img style={{ position: "absolute", width: "100px", height: "100px", top: "60px", right: "40px" }} src={Logo145} alt="Logo 3" />
-                <img style={{ position: "absolute", opacity: 0.2, width: "550px", left: "50%", top: "270px", transform: "translateX(-50%)" }} src={Logo145} alt="Watermark" />
+          {/* NAVIGATION TABS */}
+          <Box sx={{ bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}>
+            <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+              <Tabs 
+                value={activeTab} 
+                onChange={(e, nv) => setActiveTab(nv)} 
+                variant="fullWidth"
+                sx={{ 
+                  "& .MuiTabs-indicator": { height: 3, borderRadius: "3px 3px 0 0" },
+                  minHeight: 48
+                }}
+              >
+                <Tab 
+                  icon={<ArticleIcon />} 
+                  label="Form" 
+                  value="form"
+                  iconPosition="start"
+                />
+                <Tab 
+                  icon={<FolderIcon />} 
+                  label={`Records (${records.length})`} 
+                  value="records"
+                  iconPosition="start"
+                />
+                <Tab 
+                  icon={<ReceiptIcon />} 
+                  label="Transaction" 
+                  value="transaction"
+                  iconPosition="start"
+                />
+              </Tabs>
+            </Box>
+          </Box>
+        </Paper>
 
-                <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "20px", fontWeight: "bold", fontFamily: '"Lucida Calligraphy", cursive', top: "50px" }}>
-                  Republic of the Philippines
-                </div>
-                <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "13pt", fontWeight: "bold", fontFamily: "Arial, sans-serif", top: "84px" }}>
-                  CITY OF CALOOCAN
-                </div>
-                <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "15pt", fontWeight: "bold", fontFamily: '"Arial Black", sans-serif', top: "110px" }}>
-                  BARANGAY 145 ZONES 13 DIST. 1
-                </div>
-                <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "15pt", fontWeight: "bold", fontFamily: '"Arial Black", sans-serif', top: "138px" }}>
-                  Tel. No. 8711 - 7134
-                </div>
-                <div style={{ position: "absolute", whiteSpace: "pre", textAlign: "center", width: "100%", fontSize: "12pt", fontWeight: "bold", fontFamily: '"Arial Black", sans-serif', top: "166px" }}>
-                  OFFICE OF THE BARANGAY CHAIRMAN
-                </div>
-                <div style={{ position: "absolute", top: "200px", width: "100%", textAlign: "center" }}>
-                  <span style={{ fontFamily: 'Times New Roman', fontSize: "20pt", fontWeight: "bold", display: "inline-block", color: "#0b7030", padding: "4px 70px", fontStyle: "italic", textDecoration: "underline" }}>
-                    CERTIFICATION
-                  </span>
-                </div>
-
-                {/* Body - live data */}
-                <div style={{ position: "absolute", whiteSpace: "pre-wrap", top: "280px", left: "80px", width: "640px", textAlign: "justify", fontFamily: '"Times New Roman", serif', fontSize: "12pt", fontWeight: "bold", color: "black" }}>
-                  TO WHOM IT MAY CONCERN:
-
-                  <p style={{ textIndent: "50px" }}>
-                    This is to certify that <UnderlinedValue value={display.full_name1} italic width={220} />, born on <UnderlinedValue value={display.dob1 ? new Date(display.dob1).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : ""} width={160} /> and <UnderlinedValue value={display.full_name2} italic width={220} />, born on <UnderlinedValue value={display.dob2 ? new Date(display.dob2).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : ""} width={160} />, are cohabiting at <UnderlinedValue value={display.address} width={380} align="left" />, Barangay 145, Bagong Barrio, Caloocan City.
-                  </p>
-
-                  <p style={{ textIndent: "50px" }}>
-                    Upon the request of the subject residents and to the best knowledge of the Barangay, we certify that they have been living together at the aforementioned address since <UnderlinedValue value={display.date_started} width={100} />.
-                  </p>
-
-                  <p style={{ textIndent: "50px" }}>
-                    This shall serve as CERTIFICATE OF COHABITATION for whatever legal purpose it may serve.
-                  </p>
-
-                  <p style={{ textIndent: "50px" }}>
-                    Issued this <UnderlinedValue value={display.date_issued ? (() => { const date = new Date(display.date_issued); const day = date.getDate(); const month = date.toLocaleString("default", { month: "short" }); const year = date.getFullYear(); const suffix = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th"; return `${day}${suffix} day of ${month}, ${year}`; })() : ""} width={260} /> at Barangay 145 office, Bagong Barrio, Caloocan City.
-                  </p>
-
-                  <div style={{ textAlign: "center", fontWeight: "bold", marginTop: "40px", textDecoration: "underline" }}>
-                    WITNESS
-                  </div>
-
-                  <div style={{ marginTop: "40px", display: "flex", justifyContent: "space-between", paddingLeft: "60px", paddingRight: "60px", fontFamily: '"Times New Roman", serif', fontSize: "12pt", fontWeight: "bold" }}>
-                    <UnderlinedValue value={display.witness1_name} width={220} />
-                    <UnderlinedValue value={display.witness2_name} width={220} />
-                  </div>
-                </div>
-
-                {/* signatures */}
-                <div style={{ position: "absolute", top: "800px", left: "220px", width: "300px", textAlign: "left", fontFamily: '"Times New Roman", serif', fontWeight: "bold" }}>
-                  <div style={{ color: "black", fontFamily: "inherit" }}>Certified Correct:</div> <br /><br />
-                  <div style={{ color: "black", fontFamily: "inherit", fontSize: '16pt'}}>Roselyn Anore</div>
-                  <div style={{ color: "black", fontFamily: "inherit", fontStyle: 'italic'}}>Barangay Secretary</div>
-                </div>
-
-                <div style={{ position: "absolute", top: "800px", right: "20px", width: "300px", textAlign: "left", fontFamily: '"Times New Roman", serif', fontWeight: "bold" }}>
-                  <div style={{ color: "black", fontFamily: "inherit", fontSize: "12pt" }}>Attested: </div> <br /><br />
-                  <div style={{ color: "black", fontFamily: "inherit", fontSize: "16pt", fontStyle: "italic" }}>ARNOLD DONDONAYOS</div>
-                  <div style={{ color: "black", fontFamily: "inherit", fontSize: "12pt", fontStyle: "italic" }}>Barangay Chairman</div>
-                </div>
-
-                {/* QR bottom-right for draft & saved */}
-                {qrCodeUrl && (
-                  <div style={{ position: "absolute", bottom: 60, left: 80, textAlign: "center", fontFamily: '"Times New Roman", serif', fontSize: "10pt", fontWeight: "bold" }}>
-                    <a href={getVerifyUrl(display)} target="_blank" rel="noreferrer" style={{ cursor: "pointer", display: "inline-block", textDecoration: "none" }} title="Click to verify this certificate">
-                      <img src={qrCodeUrl} alt="QR" style={{ width: 120, height: 120, border: "2px solid #000", padding: 5, background: "#fff" }} />
-                    </a>
-                    <div style={{ fontSize: "8pt", color: "#666", marginTop: 6 }}>
-                      {display.date_created ? formatDateTimeDisplay(display.date_created) : new Date().toLocaleString()}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <style>{`@media print { body * { visibility: hidden; } #certificate-preview, #certificate-preview * { visibility: visible; } #certificate-preview { position: absolute; left: 0; top: 0; width: 8.5in; height: 11in; transform: none !important; } @page { size: portrait; margin: 0; } #certificate-preview * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }`}</style>
-        </Box>
-
-        {/* RIGHT: CRUD container */}
-        <Container maxWidth="sm" disableGutters sx={{ height: "100vh" }}>
-          <Paper sx={{ bgcolor: "grey.50", borderLeft: 1, borderColor: "grey.300", display: "flex", flexDirection: "column",  overflow: 'hidden' }}>
-            <Paper elevation={0} sx={{ position: "sticky", paddingTop: 5, zIndex: 10, bgcolor: "rgba(255,255,255,0.9)", backdropFilter: "blur(8px)", borderBottom: 1, borderColor: "grey.300" }}>
-              <Box sx={{ px: 2, py: 1.5, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>Certificate of Cohabitation</Typography>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <Button variant="outlined" size="small" startIcon={<PrintIcon />} onClick={handlePrint} disabled={!display.certificate_of_cohabitation_id} sx={{ color: "primary.main", borderColor: "primary.main" }}>Print</Button>
-                  <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }} color="primary">New</Button>
+        {/* MAIN CONTENT AREA */}
+        <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* LEFT: Certificate preview */}
+          <Box sx={{ 
+            flex: 1, 
+            overflow: 'auto', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            bgcolor: 'background.default',
+            p: 2,
+            [theme.breakpoints.down('lg')]: { display: activeTab === "form" ? 'none' : 'flex' }
+          }}>
+            {/* ZOOM CONTROLS */}
+            <Paper elevation={1} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+              <Box sx={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 1
+              }}>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  <Tooltip title="Zoom Out">
+                    <IconButton onClick={handleZoomOut} color="primary" size="small">
+                      <ZoomOutIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="body2" sx={{ 
+                    minWidth: 60, 
+                    textAlign: "center", 
+                    fontWeight: 600,
+                    px: 1,
+                    py: 0.5,
+                    bgcolor: "background.paper",
+                    borderRadius: 1,
+                    color: "#000000"
+                  }}>
+                    {Math.round(zoomLevel * 100)}%
+                  </Typography>
+                  <Tooltip title="Zoom In">
+                    <IconButton onClick={handleZoomIn} color="primary" size="small">
+                      <ZoomInIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Reset Zoom">
+                    <IconButton onClick={handleResetZoom} color="primary" size="small">
+                      <ResetIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Box>
-              </Box>
 
-              <Box sx={{ px: 1, pb: 1 }}>
-                <Paper sx={{ p: 0.5, bgcolor: "background.default", borderRadius: 2 }}>
-                  <Tabs value={activeTab} onChange={(e, nv) => setActiveTab(nv)} aria-label="cohab tabs" variant="fullWidth" sx={{ minHeight: "unset", "& .MuiTabs-flexContainer": { gap: 0.5 } }}>
-                    <Tab value="form" label="Form" sx={{ py: 1 }} />
-                    <Tab value="records" label={`Records (${records.length})`} sx={{ py: 1 }} />
-                    <Tab value="transaction" label="Transaction" sx={{ py: 1 }} />
-                  </Tabs>
-                </Paper>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Tooltip title="Verify Certificate">
+                    <Button 
+                      variant="outlined" 
+                      color="primary" 
+                      onClick={openVerifyPage} 
+                      startIcon={<QrCodeIcon />} 
+                      disabled={!display.certificate_of_cohabitation_id}
+                      size="small"
+                    >
+                      Verify
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Download PDF">
+                    <Button 
+                      variant="contained" 
+                      color="secondary" 
+                      onClick={generatePDF} 
+                      disabled={!display.certificate_of_cohabitation_id || isGeneratingPDF} 
+                      startIcon={<FileTextIcon />}
+                      size="small"
+                    >
+                      {isGeneratingPDF ? "Generating..." : "Download"}
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Print">
+                    <Button 
+                      variant="outlined" 
+                      onClick={handlePrint} 
+                      disabled={!display.certificate_of_cohabitation_id}
+                      startIcon={<PrintIcon />}
+                      size="small"
+                    >
+                      Print
+                    </Button>
+                  </Tooltip>
+                </Box>
               </Box>
             </Paper>
 
-            {/* Form Tab */}
-            {activeTab === "form" && (
-              <Box sx={{ flex: 1, p: 2, overflow: "auto" }}>
-                <Card sx={{ borderRadius: 3, boxShadow: 1 }}>
-                  <CardHeader title={<Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 600, color: "grey.800" }}>{editingId ? "Edit Record" : "New Cohabitation Record"}</Typography>} subheader={selectedRecord && !editingId && (<Typography variant="caption" sx={{ color: "grey.500" }}>Viewing: {selectedRecord.full_name1} & {selectedRecord.full_name2}</Typography>)} sx={{ borderBottom: 1, borderColor: "grey.200" }} />
-                  <CardContent>
-                    <Stack spacing={2}>
-                      <Autocomplete
-                        options={residents}
-                        getOptionLabel={(opt) => opt.full_name || ""}
-                        value={residents.find((r) => r.resident_id === formData.resident1_id) || null}
-                        onChange={(e, nv) => { onResident1Select(nv); }}
-                        renderInput={(params) => <TextField {...params} label="Full name 1" variant="outlined" size="small" fullWidth />}
-                      />
+            {/* CERTIFICATE PREVIEW */}
+            <Box sx={{ 
+              display: "flex", 
+              justifyContent: "center", 
+              alignItems: "flex-start", 
+              flex: 1, 
+              overflow: "auto",
+              p: 1
+            }}>
+              <Box sx={{ transform: `scale(${zoomLevel})`, transformOrigin: "top center" }}>
+                <div
+                  id="certificate-preview"
+                  style={{
+                    position: 'relative',
+                    width: '8.5in',
+                    height: '11in',
+                    boxShadow: '0 0 8px rgba(0,0,0,0.2)',
+                    background: '#fff',
+                    WebkitPrintColorAdjust: 'exact',
+                    printColorAdjust: 'exact',
+                    colorAdjust: 'exact',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Logos & watermark */}
+                  <img
+                    style={{
+                      position: 'absolute',
+                      width: '100px',
+                      height: '100px',
+                      top: '60px',
+                      left: '60px',
+                    }}
+                    src={CaloocanLogo}
+                    alt="Logo 1"
+                  />
+                  <img
+                    style={{
+                      position: 'absolute',
+                      width: '110px',
+                      height: '110px',
+                      top: '60px',
+                      right: '40px',
+                    }}
+                    src={Logo145}
+                    alt="Logo 3"
+                  />
+                  <img
+                    style={{
+                      position: 'absolute',
+                      opacity: 0.2,
+                      width: '550px',
+                      left: '50%',
+                      top: '270px',
+                      transform: 'translateX(-50%)',
+                    }}
+                    src={Logo145}
+                    alt="Watermark"
+                  />
+
+                  {/* Header */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      whiteSpace: "pre",
+                      textAlign: "center",
+                      width: "100%",
+                      fontSize: "20px",
+                      fontWeight: "bold",
+                      fontFamily: '"Lucida Calligraphy", cursive',
+                      top: "50px",
+                    }}
+                  >
+                    Republic of the Philippines
+                  </div>
+                  <div
+                    style={{
+                      position: "absolute",
+                      whiteSpace: "pre",
+                      textAlign: "center",
+                      width: "100%",
+                      fontSize: "13pt",
+                      fontWeight: "bold",
+                      fontFamily: "Arial, sans-serif",
+                      top: "84px",
+                    }}
+                  >
+                    CITY OF CALOOCAN
+                  </div>
+                  <div
+                    style={{
+                      position: "absolute",
+                      whiteSpace: "pre",
+                      textAlign: "center",
+                      width: "100%",
+                      fontSize: "15pt",
+                      fontWeight: "bold",
+                      fontFamily: '"Arial Black", sans-serif',
+                      top: "110px",
+                    }}
+                  >
+                    BARANGAY 145 ZONES 13 DIST. 1
+                  </div>
+                  <div
+                    style={{
+                      position: "absolute",
+                      whiteSpace: "pre",
+                      textAlign: "center",
+                      width: "100%",
+                      fontSize: "15pt",
+                      fontWeight: "bold",
+                      fontFamily: '"Arial Black", sans-serif',
+                      top: "138px",
+                    }}
+                  >
+                    Tel. No. 8711 - 7134
+                  </div>
+                  <div
+                    style={{
+                      position: "absolute",
+                      whiteSpace: "pre",
+                      textAlign: "center",
+                      width: "100%",
+                      fontSize: "12pt",
+                      fontWeight: "bold",
+                      fontFamily: '"Arial Black", sans-serif',
+                      top: "166px",
+                    }}
+                  >
+                    OFFICE OF THE BARANGAY CHAIRMAN
+                   </div>
+                  <div style={{ position: 'absolute', top: '200px', width: '100%', textAlign: 'center' }}>
+                  <span style={{ fontFamily: 'Times New Roman', fontSize: '20pt', fontWeight: 'bold', display: 'inline-block', color: '#0b7030', padding: '4px 70px', fontStyle: 'italic', textDecoration: 'underline' }}>CERTIFICATION</span>
+                </div>
+
+
+                  {/* Body */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      whiteSpace: 'pre-wrap',
+                      top: '280px',
+                      left: '80px',
+                      width: '640px',
+                      textAlign: 'justify',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                      fontWeight: 'bold',
+                      color: 'black',
+                    }}
+                  >
+                    TO WHOM IT MAY CONCERN:
+                    <p style={{ textIndent: '50px' }}>
+                      This is to certify that <UnderlinedValue value={display.full_name1} italic width={220} />, born on <UnderlinedValue value={display.dob1 ? new Date(display.dob1).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : ""} width={160} /> and <UnderlinedValue value={display.full_name2} italic width={220} />, born on <UnderlinedValue value={display.dob2 ? new Date(display.dob2).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : ""} width={160} />, are cohabiting at <UnderlinedValue value={display.address} width={380} align="left" />, Barangay 145, Bagong Barrio, Caloocan City.
+                    </p>
+
+                    <p style={{ textIndent: '50px' }}>
+                      Upon the request of the subject residents and to the best knowledge of the Barangay, we certify that they have been living together at the aforementioned address since <UnderlinedValue value={display.date_started} width={100} />.
+                    </p>
+
+                    <p style={{ textIndent: '50px' }}>
+                      This shall serve as CERTIFICATE OF COHABITATION for whatever legal purpose it may serve.
+                    </p>
+
+                    <p style={{ textIndent: '50px' }}>
+                      Issued this <UnderlinedValue value={display.date_issued ? (() => { 
+                        const date = new Date(display.date_issued); 
+                        const day = date.getDate(); 
+                        const month = date.toLocaleString("default", { month: "short" }); 
+                        const year = date.getFullYear(); 
+                        const suffix = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th"; 
+                        return `${day}${suffix} day of ${month}, ${year}`; 
+                      })() : ""} width={260} /> at Barangay 145 office, Bagong Barrio, Caloocan City.
+                    </p>
+
+                    <div style={{ textAlign: "center", fontWeight: "bold", marginTop: "40px", textDecoration: "underline" }}>
+                      WITNESS
+                    </div>
+
+                    <div style={{ marginTop: "40px", display: "flex", justifyContent: "space-between", paddingLeft: "60px", paddingRight: "60px", fontFamily: '"Times New Roman", serif', fontSize: "12pt", fontWeight: "bold" }}>
+                      <UnderlinedValue value={display.witness1_name} width={220} />
+                      <UnderlinedValue value={display.witness2_name} width={220} />
+                    </div>
+                  </div>
+
+                  {/* Signatures */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '800px',
+                      left: '220px',
+                      width: '300px',
+                      textAlign: 'left',
+                      fontFamily: '"Times New Roman", serif',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    <div style={{ color: 'black', fontFamily: 'inherit' }}>Certified Correct:</div> <br /><br />
+                    <div style={{ color: 'black', fontFamily: 'inherit', fontSize: '16pt'}}>Roselyn Anore</div>
+                    <div style={{ color: 'black', fontFamily: 'inherit', fontStyle: 'italic'}}>Barangay Secretary</div>
+                  </div>
+
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '800px',
+                      right: '20px',
+                      width: '300px',
+                      textAlign: 'left',
+                      fontFamily: '"Times New Roman", serif',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    <div style={{ color: 'black', fontFamily: 'inherit', fontSize: '12pt' }}>Attested: </div> <br /><br />
+                    <div style={{ color: 'black', fontFamily: 'inherit', fontSize: '16pt', fontStyle: 'italic' }}>ARNOLD DONDONAYOS</div>
+                    <div style={{ color: 'black', fontFamily: 'inherit', fontSize: '12pt', fontStyle: 'italic' }}>Barangay Chairman</div>
+                  </div>
+
+                  {/* QR and signature area */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '780px',
+                      left: '50px',
+                      width: '200px',
+                      textAlign: 'center',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                      fontWeight: 'bold',
+                    }}
+                  >
                     
-                      <TextField label="Birthday (Full name 1) *" type="date" variant="outlined" size="small" fullWidth InputLabelProps={{ shrink: true }} value={formData.dob1} onChange={(e) => setFormData({ ...formData, dob1: e.target.value })} />
 
-                      <Autocomplete
-                        options={residents}
-                        getOptionLabel={(opt) => opt.full_name || ""}
-                        value={residents.find((r) => r.resident_id === formData.resident2_id) || null}
-                        onChange={(e, nv) => { onResident2Select(nv); }}
-                        renderInput={(params) => <TextField {...params} label="Full name 2" variant="outlined" size="small" fullWidth />}
-                      />
+                    {qrCodeUrl && (
+                      <div style={{ marginTop: '12px' }}>
+                        <div
+                          onClick={openVerifyPage}
+                          style={{
+                            cursor: 'pointer',
+                            position: 'relative',
+                            display: 'inline-block',
+                          }}
+                          title="Click to view certificate details"
+                        >
+                          <img
+                            src={qrCodeUrl}
+                            alt="QR Code"
+                            style={{
+                              width: '130px',
+                              height: '130px',
+                              border: '2px solid #000',
+                              padding: '5px',
+                              background: '#fff',
+                            }}
+                          />
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: 'rgba(255,255,255,0)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: 0,
+                              transition: 'opacity 0.3s',
+                              borderRadius: '4px',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.opacity = '0.7';
+                              e.currentTarget.style.backgroundColor =
+                                'rgba(255,255,255,0.8)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.opacity = '0';
+                              e.currentTarget.style.backgroundColor =
+                                'rgba(255,255,255,0)';
+                            }}
+                          >
+                            <QrCodeIcon
+                              sx={{
+                                fontSize: 40,
+                                color: theme.palette.success.main,
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '8pt',
+                            color: '#666',
+                            marginTop: '6px',
+                            fontWeight: 'normal',
+                          }}
+                        >
+                          {display.date_created
+                            ? formatDateTimeDisplay(display.date_created)
+                            : new Date().toLocaleString()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Box>
+            </Box>
+
+            <style>
+              {`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #certificate-preview, #certificate-preview * {
+            visibility: visible;
+          }
+          #certificate-preview {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 8.5in;
+            height: 11in;
+            transform: none !important; /* Remove any transforms */
+          }
+          @page {
+            size: portrait;
+            margin: 0;
+          }
+          /* Ensure colors are preserved when printing */
+          #certificate-preview * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+        }
+      `}
+            </style>
+          </Box>
+
+          {/* RIGHT: FORM/RECORDS PANEL */}
+          <Box sx={{ 
+            width: { xs: '100%', md: '50%', lg: '40%' }, 
+            bgcolor: "background.paper", 
+            borderLeft: { xs: 0, md: 1 }, 
+            borderColor: "divider",
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* FORM */}
+            {activeTab === "form" && (
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+                    <ArticleIcon color="primary" />
+                    {editingId ? "Edit Certificate" : "New Certificate of Cohabitation"}
+                  </Typography>
+                  {selectedRecord && !editingId && (
+                    <Typography variant="body2" color="text.secondary">
+                      Viewing: {selectedRecord.full_name1} & {selectedRecord.full_name2}
+                    </Typography>
+                  )}
+                </Paper>
+
+                <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
+                  <Stack spacing={3}>
+                    <Autocomplete
+                      options={residents}
+                      getOptionLabel={(opt) => opt.full_name || ''}
+                      value={residents.find((r) => r.resident_id === formData.resident1_id) || null}
+                      onChange={(e, nv) => { onResident1Select(nv); }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Full Name 1 *"
+                          variant="outlined"
+                          size="small"
+                          fullWidth
+                          required
+                        />
+                      )}
+                    />
+
+                    <TextField
+                      label="Birthday (Full Name 1) *"
+                      type="date"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      value={formData.dob1}
+                      onChange={(e) => setFormData({ ...formData, dob1: e.target.value })}
+                      required
+                    />
+
+                    <Autocomplete
+                      options={residents}
+                      getOptionLabel={(opt) => opt.full_name || ''}
+                      value={residents.find((r) => r.resident_id === formData.resident2_id) || null}
+                      onChange={(e, nv) => { onResident2Select(nv); }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Full Name 2 *"
+                          variant="outlined"
+                          size="small"
+                          fullWidth
+                          required
+                        />
+                      )}
+                    />
                      
-                      <TextField label="Birthday (Full name 2) *" type="date" variant="outlined" size="small" fullWidth InputLabelProps={{ shrink: true }} value={formData.dob2} onChange={(e) => setFormData({ ...formData, dob2: e.target.value })} />
+                    <TextField
+                      label="Birthday (Full Name 2) *"
+                      type="date"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      value={formData.dob2}
+                      onChange={(e) => setFormData({ ...formData, dob2: e.target.value })}
+                      required
+                    />
 
-                      <TextField label="Address *" variant="outlined" size="small" fullWidth multiline rows={2} value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                    <TextField
+                      label="Address *"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      multiline
+                      rows={2}
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      required
+                    />
 
-                      <TextField label="Date Started (Year) *" type="number" variant="outlined" size="small" fullWidth value={formData.date_started} onChange={(e) => setFormData({ ...formData, date_started: e.target.value })} placeholder="e.g. 2015" />
+                    <TextField
+                      label="Date Started (Year) *"
+                      type="number"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      value={formData.date_started}
+                      onChange={(e) => setFormData({ ...formData, date_started: e.target.value })}
+                      placeholder="e.g. 2015"
+                      required
+                    />
 
-                      <TextField label="Date Issued *" type="date" variant="outlined" size="small" fullWidth InputLabelProps={{ shrink: true }} value={formData.date_issued} onChange={(e) => setFormData({ ...formData, date_issued: e.target.value })} helperText={formData.date_issued ? (() => { const date = new Date(formData.date_issued); const day = date.getDate(); const month = date.toLocaleString("default", { month: "short" }); const year = date.getFullYear(); const suffix = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th"; return `Formatted: ${day}${suffix} day of ${month}, ${year}`; })() : "Select the date"} />
+                    <TextField
+                      label="Date Issued *"
+                      type="date"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      value={formData.date_issued}
+                      onChange={(e) => setFormData({ ...formData, date_issued: e.target.value })}
+                      helperText={formData.date_issued ? (()=>{
+                        const date=new Date(formData.date_issued);
+                        const day=date.getDate();
+                        const month = date.toLocaleString('default',{month:'long'});
+                        const year = date.getFullYear();
+                        const suffix = day%10===1&&day!==11? 'st' : day%10===2&&day!==12? 'nd' : day%10===3&&day!==13? 'rd' : 'th';
+                        return `Formatted: ${day}${suffix} day of ${month}, ${year}`;
+                      })() : 'Select date'}
+                      required
+                    />
 
-                      <Grid container spacing={1.5}>
-                        <Grid item xs={6}>
-                          <TextField label="Witness 1" variant="outlined" size="small" fullWidth value={formData.witness1_name} onChange={(e) => setFormData({ ...formData, witness1_name: e.target.value })} />
-                        </Grid>
-                        <Grid item xs={6}>
-                          <TextField label="Witness 2" variant="outlined" size="small" fullWidth value={formData.witness2_name} onChange={(e) => setFormData({ ...formData, witness2_name: e.target.value })} />
-                        </Grid>
+                    <Grid container spacing={1.5}>
+                      <Grid item xs={6}>
+                        <TextField
+                          label="Witness 1"
+                          variant="outlined"
+                          size="small"
+                          fullWidth
+                          value={formData.witness1_name}
+                          onChange={(e) => setFormData({ ...formData, witness1_name: e.target.value })}
+                        />
                       </Grid>
+                      <Grid item xs={6}>
+                        <TextField
+                          label="Witness 2"
+                          variant="outlined"
+                          size="small"
+                          fullWidth
+                          value={formData.witness2_name}
+                          onChange={(e) => setFormData({ ...formData, witness2_name: e.target.value })}
+                        />
+                      </Grid>
+                    </Grid>
 
-                      <Box sx={{ display: "flex", gap: 1, pt: 1 }}>
-                        <Button onClick={handleSubmit} variant="contained" startIcon={<SaveIcon />} fullWidth color="primary" sx={{ py: 1.25 }}>{editingId ? "Update" : "Save"}</Button>
-                        {(editingId || isFormOpen) && (<Button onClick={resetForm} variant="outlined" startIcon={<CloseIcon />} color="primary" sx={{ py: 1.25 }}>Cancel</Button>)}
-                      </Box>
-                    </Stack>
-                  </CardContent>
-                </Card>
+                    <Box sx={{ display: 'flex', gap: 1, pt: 1 }}>
+                      <Button
+                        onClick={handleSubmit}
+                        variant="contained"
+                        startIcon={<SaveIcon />}
+                        fullWidth
+                        color="primary"
+                        size="large"
+                      >
+                        {editingId ? 'Update' : 'Save'}
+                      </Button>
+                      {(editingId || isFormOpen) && (
+                        <Button
+                          onClick={resetForm}
+                          variant="outlined"
+                          startIcon={<CloseIcon />}
+                          color="primary"
+                          size="large"
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                    </Box>
+                  </Stack>
+                </Box>
               </Box>
             )}
 
-            {/* Records Tab */}
+            {/* RECORDS */}
             {activeTab === "records" && (
-              <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                <Box sx={{ p: 1.5 }}>
-                  <TextField fullWidth size="small" placeholder="Search records..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon sx={{ color: "grey.400", fontSize: 20 }} /></InputAdornment>) }} />
-                </Box>
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                    <FolderIcon color="primary" />
+                    Certificate Records
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Search by name, address, or date started"
+                    value={searchTerm}
+                    onChange={(e)=>setSearchTerm(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      )
+                    }}
+                  />
+                </Paper>
 
-                <Box sx={{ flex: 1, overflow: "auto", px: 1.5, pb: 1.5 }}>
+                <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
                   {filteredRecords.length === 0 ? (
-                    <Paper sx={{ p: 3, textAlign: "center", color: "grey.500" }}><Typography variant="body2">{searchTerm ? "No records found" : "No records yet"}</Typography></Paper>
+                    <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
+                      <FolderIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                      <Typography variant="h6" gutterBottom>
+                        {searchTerm ? "No records found" : "No records yet"}
+                      </Typography>
+                      <Typography variant="body2">
+                        {searchTerm ? "Try a different search term" : "Create your first certificate to get started"}
+                      </Typography>
+                    </Paper>
                   ) : (
-                    <Stack spacing={1}>
+                    <Stack spacing={2}>
                       {filteredRecords.map((record) => (
-                        <Card key={record.certificate_of_cohabitation_id} sx={{ boxShadow: 1, '&:hover': { boxShadow: 2 }, transition: "box-shadow 0.2s", borderLeft: "4px solid", borderColor: "primary.main" }}>
-                          <CardContent sx={{ p: 1.5 }}>
+                        <Card key={record.certificate_of_cohabitation_id} sx={{
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          borderLeft: 4,
+                          borderColor: "primary.main",
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
                             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                               <Box sx={{ flex: 1 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{record.full_name1} & {record.full_name2}</Typography>
-                                <Typography variant="caption" sx={{ color: "grey.600", display: "block" }}>{record.address}</Typography>
-                                <Typography variant="caption" sx={{ color: "grey.400", display: "block" }}>Started: {record.date_started}</Typography>
-                                <Typography variant="caption" sx={{ color: "grey.400", display: "block" }}>Issued: {formatDateDisplay(record.date_issued)}</Typography>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5, color: "#000000" }}>
+                                  {record.full_name1} & {record.full_name2}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                  {record.address}
+                                </Typography>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                                  <Chip
+                                    label={`Since: ${record.date_started}`}
+                                    size="small"
+                                    color="primary"
+                                    variant="outlined"
+                                  />
+                                  <Typography variant="caption" color="text.secondary">
+                                    Issued: {formatDateDisplay(record.date_issued)}
+                                  </Typography>
+                                </Box>
+                                <Typography variant="caption" color="text.secondary">
+                                  {record.witness1_name && record.witness2_name ? `Witnesses: ${record.witness1_name}, ${record.witness2_name}` : ''}
+                                </Typography>
                               </Box>
-                              <Box sx={{ display: "flex", gap: 0.5, ml: 1 }}>
-                                <IconButton size="small" onClick={() => handleView(record)} sx={{ color: "info.main" }} title="View"><EyeIcon sx={{ fontSize: 16 }} /></IconButton>
-                                <IconButton size="small" onClick={() => handleEdit(record)} sx={{ color: "success.main" }} title="Edit"><EditIcon sx={{ fontSize: 16 }} /></IconButton>
-                                <IconButton size="small" onClick={() => handleDelete(record.certificate_of_cohabitation_id)} sx={{ color: "error.main" }} title="Delete"><DeleteIcon sx={{ fontSize: 16 }} /></IconButton>
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Tooltip title="View">
+                                  <IconButton
+                                    size="small"
+                                    onClick={()=>handleView(record)}
+                                    color="primary"
+                                  >
+                                    <EyeIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Edit">
+                                  <IconButton
+                                    size="small"
+                                    onClick={()=>handleEdit(record)}
+                                    color="success"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete">
+                                  <IconButton
+                                    size="small"
+                                    onClick={()=>handleDelete(record.certificate_of_cohabitation_id)}
+                                    color="error"
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
                               </Box>
                             </Box>
                           </CardContent>
@@ -717,40 +1545,105 @@ export default function Cohabitation() {
               </Box>
             )}
 
-            {/* Transaction Tab */}
+            {/* TRANSACTION */}
             {activeTab === "transaction" && (
               <Box sx={{ flex: 1, p: 2, overflow: "auto" }}>
                 <Card sx={{ borderRadius: 3, boxShadow: 1, mb: 2 }}>
-                  <CardHeader title={<Typography variant="h6">Search by Transaction</Typography>} sx={{ borderBottom: 1, borderColor: "grey.200" }} />
+                  <CardHeader title={<Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 600, color: "grey.800" }}>Search by Transaction Number</Typography>} sx={{ borderBottom: 1, borderColor: "grey.200" }} />
                   <CardContent>
                     <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-                      <TextField fullWidth size="small" placeholder="Enter transaction number (e.g., COH-240101-123456)" value={transactionSearch} onChange={(e) => setTransactionSearch(e.target.value)} InputProps={{ startAdornment: (<InputAdornment position="start"><FileTextIcon sx={{ color: "grey.400", fontSize: 20 }} /></InputAdornment>) }} />
-                      <Button variant="contained" color="primary" onClick={handleTransactionSearch} startIcon={<SearchIcon />} sx={{ px: 3 }}>Search</Button>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="Enter transaction number (e.g., COH-240101-123456)"
+                        value={transactionSearch}
+                        onChange={(e)=>setTransactionSearch(e.target.value)}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <ReceiptIcon />
+                            </InputAdornment>
+                          )
+                        }}
+                      />
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleTransactionSearch}
+                        startIcon={<SearchIcon />}
+                        sx={{ fontWeight: 600, px: 3 }}
+                      >
+                        Search
+                      </Button>
                     </Box>
-                    <Typography variant="caption" color="text.secondary">Transaction numbers are generated automatically at save. Format: COH-YYMMDD-######</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                      Transaction numbers are automatically generated when creating a new certificate. Format: COH-YYMMDD-######
+                    </Typography>
                   </CardContent>
                 </Card>
 
                 <Card sx={{ borderRadius: 3, boxShadow: 1 }}>
-                  <CardHeader title={<Typography variant="h6">Recent Transactions</Typography>} sx={{ borderBottom: 1, borderColor: "grey.200" }} />
-                  <CardContent>
+                  <CardHeader title={<Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 600, color: "grey.800" }}>Recent Transactions</Typography>} sx={{ borderBottom: 1, borderColor: "grey.200" }} />
+                  <CardContent sx={{ p: 0 }}>
                     {transactionFilteredRecords.length === 0 ? (
-                      <Box sx={{ p: 3, textAlign: "center", color: "grey.500" }}>No transactions found</Box>
+                      <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
+                        <ReceiptIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                        <Typography variant="h6" gutterBottom>
+                          No transactions found
+                        </Typography>
+                        <Typography variant="body2">
+                          Enter a transaction number to search
+                        </Typography>
+                      </Box>
                     ) : (
-                      <Stack spacing={1}>
-                        {transactionFilteredRecords.map((r) => (
-                          <Card key={r.certificate_of_cohabitation_id} sx={{ boxShadow: 0, '&:hover': { boxShadow: 1 }, transition: "box-shadow 0.2s", borderLeft: 3, borderColor: "primary.main" }}>
-                            <CardContent sx={{ p: 1.5 }}>
+                      <Stack spacing={2}>
+                        {transactionFilteredRecords.map((record) => (
+                          <Card key={record.certificate_of_cohabitation_id} sx={{
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                            borderLeft: 4,
+                            borderColor: "secondary.main",
+                          }}>
+                            <CardContent sx={{ p: 2 }}>
                               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                <Box>
-                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{r.full_name1} & {r.full_name2}</Typography>
-                                  <Typography variant="caption" sx={{ color: "primary.main" }}>{r.transaction_number}</Typography>
-                                  <Typography variant="caption" sx={{ display: "block", color: "grey.600" }}>{r.address}</Typography>
-                                  <Typography variant="caption" sx={{ color: "grey.400" }}>Issued: {formatDateDisplay(r.date_issued)}</Typography>
+                                <Box sx={{ flex: 1 }}>
+                                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5, color: "#000000" }}>
+                                    {record.full_name1} & {record.full_name2}
+                                  </Typography>
+                                  <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                                    <Chip
+                                      label={record.transaction_number}
+                                      size="small"
+                                      color="secondary"
+                                      variant="outlined"
+                                    />
+                                  </Box>
+                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                    {record.address}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Issued: {formatDateDisplay(record.date_issued)}
+                                  </Typography>
                                 </Box>
                                 <Box sx={{ display: "flex", gap: 0.5 }}>
-                                  <IconButton size="small" onClick={() => handleView(r)} title="View"><EyeIcon sx={{ fontSize: 16 }} /></IconButton>
-                                  <IconButton size="small" onClick={() => handleEdit(r)} title="Edit"><EditIcon sx={{ fontSize: 16 }} /></IconButton>
+                                  <Tooltip title="View">
+                                    <IconButton
+                                      size="small"
+                                      onClick={()=>handleView(record)}
+                                      color="primary"
+                                    >
+                                      <EyeIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Edit">
+                                    <IconButton
+                                      size="small"
+                                      onClick={()=>handleEdit(record)}
+                                      color="success"
+                                    >
+                                      <EditIcon />
+                                    </IconButton>
+                                  </Tooltip>
                                 </Box>
                               </Box>
                             </CardContent>
@@ -762,9 +1655,24 @@ export default function Cohabitation() {
                 </Card>
               </Box>
             )}
+          </Box>
+        </Box>
 
-          </Paper>
-        </Container>
+        {/* FLOATING ACTION BUTTON FOR MOBILE */}
+        {isMobile && activeTab !== "form" && (
+          <Fab
+            color="primary"
+            aria-label="add"
+            sx={{
+              position: 'absolute',
+              bottom: 16,
+              right: 16,
+            }}
+            onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }}
+          >
+            <AddIcon />
+          </Fab>
+        )}
       </Box>
     </ThemeProvider>
   );

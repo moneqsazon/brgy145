@@ -33,6 +33,14 @@ import {
   Tabs,
   Tab,
   Autocomplete,
+  createTheme,
+  ThemeProvider,
+  Avatar,
+  Badge,
+  Tooltip,
+  Fab,
+  AppBar,
+  Toolbar,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -46,10 +54,154 @@ import {
   QrCodeScanner as QrCodeIcon,
   Receipt as ReceiptIcon,
   Print as PrintIcon,
+  ZoomIn as ZoomInIcon,
+  ZoomOut as ZoomOutIcon,
+  RestartAlt as ResetIcon,
+  Folder as FolderIcon,
+  Dashboard as DashboardIcon,
+  Article as ArticleIcon,
 } from '@mui/icons-material';
-import ZoomInIcon from '@mui/icons-material/ZoomIn';
-import ZoomOutIcon from '@mui/icons-material/ZoomOut';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import { useMediaQuery } from '@mui/material';
+
+// Define the custom theme matching Permit to Travel
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#41644A', // Darker green from palette
+      light: '#A0B2A6', // Lighter shade for hover/focus
+      dark: '#0D4715', // Even darker green for strong accents
+    },
+    secondary: {
+      main: '#E9762B', // Orange from palette for highlighting
+    },
+    success: {
+      main: '#41644A', // Darker green from palette
+      light: '#A0B2A6',
+      dark: '#0D4715',
+    },
+    background: {
+      default: '#F1F0E9', // Off-white/light beige
+      paper: '#FFFFFF',
+    },
+    text: {
+      primary: '#000000', // Black for main text
+      secondary: '#41644A', // Another shade for secondary text
+    },
+    error: {
+      main: '#E9762B',
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: 8,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          '&:hover': {
+            boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+          },
+        },
+        containedPrimary: {
+          background: 'linear-gradient(45deg, #41644A 30%, #527D60 90%)',
+        },
+        containedSecondary: {
+          background: 'linear-gradient(45deg, #E9762B 30%, #F4944D 90%)',
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+          },
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          minHeight: 48,
+          color: '#000000',
+          '&.Mui-selected': {
+            color: '#41644A',
+          },
+        },
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          color: '#000000',
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          color: '#000000',
+          '&.Mui-focused': {
+            color: '#41644A',
+          },
+        },
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          color: '#000000',
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#000000',
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#41644A',
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#41644A',
+          },
+        },
+      },
+    },
+    MuiAutocomplete: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#000000',
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#41644A',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#41644A',
+            },
+          },
+        },
+      },
+    },
+  },
+});
 
 export default function OathJobSeeker() {
   const apiBase = 'http://localhost:5000';
@@ -68,10 +220,12 @@ export default function OathJobSeeker() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [residents, setResidents] = useState([]);
 
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [formData, setFormData] = useState({
     name: '',
     address: '',
-    birthday: '',
+    dob: '',
     age: '',
     dateIssued: new Date().toISOString().split('T')[0],
   });
@@ -117,6 +271,42 @@ export default function OathJobSeeker() {
       'December',
     ];
     return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`;
+  }
+
+  function formatDateTimeDisplay(dateString) {
+    if (!dateString) return '';
+
+    // Create a new Date object from the string
+    const date = new Date(dateString);
+
+    // Format as month name, day, year, time
+    const monthNames = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    const month = monthNames[date.getMonth()];
+    const day = date.getDate();
+    const year = date.getFullYear();
+
+    // Format time with AM/PM
+    let hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+
+    return `${month} ${day}, ${year} ${hours}:${minutes} ${ampm}`;
   }
 
   function calculateAge(dateString) {
@@ -181,6 +371,36 @@ export default function OathJobSeeker() {
     return num.toString();
   }
 
+  // Generate a unique transaction number
+  function generateTransactionNumber() {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const random =
+      Math.floor(Math.random() * 900) +
+      (100) // 3-digit random number
+        .toString()
+        .padStart(3, '0');
+    return `OJS-${year}${month}${day}-${random}`;
+  }
+
+  // Store certificate data in localStorage for QR code verification
+  function storeCertificateData(certificateData) {
+    if (!certificateData.id) return;
+
+    // Get existing certificates from localStorage
+    const existingCertificates = JSON.parse(
+      localStorage.getItem('certificates') || '{}'
+    );
+
+    // Add or update the certificate
+    existingCertificates[certificateData.id] = certificateData;
+
+    // Store back to localStorage
+    localStorage.setItem('certificates', JSON.stringify(existingCertificates));
+  }
+
   // ---------- API / CRUD ----------
   // ---------- LOAD RESIDENT RECORDS ----------
   async function loadResidents() {
@@ -200,6 +420,7 @@ export default function OathJobSeeker() {
   useEffect(() => {
     loadResidents();
   }, []);
+  
   async function loadRecords() {
     try {
       const res = await fetch(`${apiBase}/oath-job`);
@@ -210,10 +431,11 @@ export default function OathJobSeeker() {
               id: r.id,
               name: r.full_name,
               address: r.address,
-              birthday: r.birthday?.slice(0, 10) || '',
+              dob: r.dob?.slice(0, 10) || '',
               age: String(r.age ?? ''),
               dateIssued: r.date_issued?.slice(0, 10) || '',
               dateCreated: r.date_created || null,
+              transaction_number: r.transaction_number || generateTransactionNumber(),
             }))
           : []
       );
@@ -233,22 +455,30 @@ export default function OathJobSeeker() {
       age: data.age ? Number(data.age) : null,
       address: data.address || null,
       date_issued: data.dateIssued,
+      transaction_number: data.transaction_number,
     };
   }
 
   async function handleCreate() {
     try {
+      // Generate a transaction number for new certificates
+      const transactionNumber = generateTransactionNumber();
+      const updatedFormData = {
+        ...formData,
+        transaction_number: transactionNumber,
+        dateCreated: new Date().toISOString(), // Add current timestamp
+      };
+
       const res = await fetch(`${apiBase}/oath-job`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(formData)),
+        body: JSON.stringify(toServerPayload(updatedFormData)),
       });
       if (!res.ok) throw new Error('Create failed');
       const created = await res.json();
       const newRec = {
-        ...formData,
+        ...updatedFormData,
         id: created.id,
-        dateCreated: new Date().toISOString(),
       };
       setRecords([newRec, ...records]);
       setSelectedRecord(newRec);
@@ -279,6 +509,13 @@ export default function OathJobSeeker() {
       console.error('handleUpdate error', e);
       alert('Failed to update record');
     }
+  }
+
+  function handleEdit(record) {
+    setFormData({ ...record });
+    setEditingId(record.id);
+    setIsFormOpen(true);
+    setActiveTab('form');
   }
 
   async function handleDelete(id) {
@@ -316,7 +553,7 @@ export default function OathJobSeeker() {
     setFormData({
       name: '',
       address: '',
-      birthday: '',
+      dob: '',
       age: '',
       dateIssued: new Date().toISOString().split('T')[0],
     });
@@ -331,74 +568,75 @@ export default function OathJobSeeker() {
   }
 
   // ---------- QR STORAGE & GENERATION ----------
-  function storeCertificateData(certificateData) {
-    if (!certificateData.id) return;
-    const existingCertificates = JSON.parse(
-      localStorage.getItem('certificates') || '{}'
-    );
-    existingCertificates[certificateData.id] = certificateData;
-    localStorage.setItem('certificates', JSON.stringify(existingCertificates));
-  }
+  const display = useMemo(() => {
+    if (editingId || isFormOpen) return formData;
+    if (selectedRecord) return selectedRecord;
+    return formData;
+  }, [editingId, isFormOpen, selectedRecord, formData]);
 
   useEffect(() => {
     const generateQRCode = async () => {
-      // choose display: if editing or open, use formData, else selectedRecord
-      const display =
-        editingId || isFormOpen ? formData : selectedRecord || formData;
-      if (!display || !display.name) {
-        setQrCodeUrl(null);
-        return;
-      }
+      if (display.id || display.name) {
+        // Store the certificate data in localStorage
+        storeCertificateData(display);
 
-      // store for offline verification
-      storeCertificateData(display);
+        // Create a URL that points to a verification page
+        // Using window.location.origin to get the current domain
+        const verificationUrl = `${
+          window.location.origin
+        }/verify-oath-job-seeker?id=${display.id || 'draft'}`;
 
-      const verificationUrl = `${
-        window.location.origin
-      }/verify-oath-job-seeker?id=${display.id || 'draft'}`;
+        const qrContent = `CERTIFICATE VERIFICATION:
+        𝗧𝗿𝗮𝗻𝘀𝗮𝗰𝘁𝗶𝗼𝗻 𝗡𝗼: ${display.transaction_number || 'N/A'}
+        Name: ${display.name}
+        Date Issued: ${
+        display.dateCreated
+        ? formatDateTimeDisplay(display.dateCreated)
+        : new Date().toLocaleString()
+        }
+        Document Type: Oath of Undertaking Job Seeker
+       
+        Ⓒ RRMS | BARANGAY 145
+        CALOOCAN CITY
+        ALL RIGHTS RESERVED
+        `;
 
-      const qrContent = `CERTIFICATE VERIFICATION:
-      Transaction: ${display.id || 'Draft'}
-      Name: ${display.name}
-      Date Issued: ${
-        display.dateIssued || new Date().toISOString().split('T')[0]
-      }
-      Document Type: Oath Job Seeker
-      Verification URL: ${verificationUrl}
-      © BARANGAY 145 CALOOCAN CITY`;
-
-      try {
-        const qrUrl = await QRCode.toDataURL(qrContent, {
-          width: 150,
-          margin: 1,
-          color: { dark: '#000000', light: '#FFFFFF' },
-          errorCorrectionLevel: 'L',
-        });
-        setQrCodeUrl(qrUrl);
-      } catch (err) {
-        console.error('Failed to generate QR code:', err);
-        setQrCodeUrl(null);
+        try {
+          const qrUrl = await QRCode.toDataURL(qrContent, {
+            width: 140,
+            margin: 1,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF',
+            },
+            errorCorrectionLevel: 'L',
+          });
+          setQrCodeUrl(qrUrl);
+        } catch (err) {
+          console.error('Failed to generate QR code:', err);
+        }
+      } else {
+        setQrCodeUrl('');
       }
     };
 
     generateQRCode();
-    // regenerate when formData/selectedRecord/editing changes
-  }, [formData, selectedRecord, editingId, isFormOpen]);
+  }, [display]);
 
   const handleQrCodeClick = () => {
-    if (selectedRecord?.id || editingId) {
-      const id = selectedRecord?.id || editingId;
-      const verificationUrl = `${window.location.origin}/verify-oath-job-seeker?id=${id}`;
+    if (display.id) {
+      // Open the verification URL in a new tab
+      const verificationUrl = `${window.location.origin}/verify-oath-job-seeker?id=${display.id}`;
       window.open(verificationUrl, '_blank');
     } else {
+      // Show a dialog with the certificate details (for unsaved draft)
       setQrDialogOpen(true);
     }
   };
 
   // ---------- PDF + Print ----------
   async function generatePDF() {
-    // Must save record first before exporting ideally
-    if (!selectedRecord?.id && !editingId) {
+    if (!display.id) {
       alert('Please save the record first before downloading PDF');
       return;
     }
@@ -441,22 +679,19 @@ export default function OathJobSeeker() {
       pdf.line(0.5, 0.85, 8, 0.85);
       pdf.setFontSize(12);
       pdf.setFont(undefined, 'normal');
-      const display = selectedRecord || formData;
-      const createdDate = display.dateCreated
-        ? new Date(display.dateCreated).toLocaleString()
-        : new Date().toLocaleString();
       const details = [
-        `Certificate Type: Oath of Undertaking`,
+        `Certificate Type: Oath of Undertaking Job Seeker`,
         `Certificate ID: ${display.id || 'Draft'}`,
+        `Transaction Number: ${display.transaction_number || 'N/A'}`,
         `Full Name: ${display.name || ''}`,
         `Address: ${display.address || ''}`,
-        `Birthday: ${display.birthday ? formatDateDisplay(display.birthday) : 'N/A'}`,
+        `Birthday: ${display.dob ? formatDateDisplay(display.dob) : 'N/A'}`,
         `Age: ${display.age || ''}`,
         `Date Issued: ${display.dateIssued || ''}`,
-        `Date Created (E-Signature Applied): ${createdDate}`,
+        `Date Created (E-Signature Applied): ${display.dateCreated ? formatDateTimeDisplay(display.dateCreated) : new Date().toLocaleString()}`,
         ``,
         `VERIFICATION:`,
-        `Scan the QR code on the certificate or visit: ${window.location.origin}/verify-certificate?id=${display.id || 'Draft'}`,
+        `Scan the QR code on the certificate or visit: ${window.location.origin}/verify-oath-job-seeker?id=${display.id || 'Draft'}`,
       ];
       let yPos = 1.2;
       const lineHeight = 0.25;
@@ -475,49 +710,103 @@ export default function OathJobSeeker() {
   }
 
   function handlePrint() {
-    if (!selectedRecord?.id && !editingId) {
+    if (!display.id) {
       alert('Please save the record first before printing');
       return;
     }
 
+    // 1. Get the certificate element
     const certificateElement = document.getElementById('certificate-preview');
-    const certificateHTML = certificateElement.outerHTML;
-    const printWindow = window.open('', '_blank');
+    if (!certificateElement) {
+      alert('Certificate not found for printing.');
+      return;
+    }
 
-    printWindow.document.write(`
+    // 2. Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px'; // Move it way off-screen
+    iframe.style.top = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    document.body.appendChild(iframe);
+
+    // 3. Write the certificate content and styles into the iframe
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.write(`
       <!DOCTYPE html>
       <html>
         <head>
           <title>Print Certificate</title>
           <style>
-            @page { size: 8.5in 11in; margin: 0; }
-            body { margin: 0; padding: 0; font-family: Times, serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
-            #certificate-preview { width: 8.5in; height: 11in; }
-            #certificate-preview * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+            @page {
+              size: 8.5in 11in;
+              margin: 0;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            #certificate-preview {
+              width: 8.5in;
+              height: 11in;
+              position: relative;
+              overflow: hidden;
+              background: white;
+              box-sizing: border-box;
+            }
+            #certificate-preview * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
           </style>
         </head>
         <body>
-          ${certificateHTML}
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = function() { window.close(); }
-            };
-          </script>
+          ${certificateElement.outerHTML}
         </body>
       </html>
     `);
+    iframeDoc.close();
 
-    printWindow.document.close();
+    // 4. Trigger the print dialog once the iframe content is loaded
+    setTimeout(() => {
+      const iframeWindow = iframe.contentWindow || iframe;
+      iframeWindow.focus(); // Required for some browsers
+      iframeWindow.print();
+
+      // 5. Clean up by removing the iframe after the print dialog
+      window.onafterprint = () => {
+        document.body.removeChild(iframe);
+      };
+      // Fallback cleanup in case onafterprint doesn't fire
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    }, 250); // A short delay to render
   }
 
   // ---------- Zoom Controls ----------
-  const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 0.1, 2));
-  const handleZoomOut = () => setZoomLevel((prev) => Math.max(prev - 0.1, 0.3));
-  const handleResetZoom = () => setZoomLevel(0.75);
+  const handleZoomIn = () => {
+    setZoomLevel((prev) => Math.min(prev + 0.1, 2)); // Max zoom: 2x (200%)
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel((prev) => Math.max(prev - 0.1, 0.3)); // Min zoom: 0.3x (30%)
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(0.75); // Reset to default
+  };
 
   useEffect(() => {
     const handleKeyPress = (e) => {
+      // Check if Ctrl/Cmd is pressed
       if (e.ctrlKey || e.metaKey) {
         if (e.key === '=' || e.key === '+') {
           e.preventDefault();
@@ -531,6 +820,7 @@ export default function OathJobSeeker() {
         }
       }
     };
+
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [zoomLevel]);
@@ -550,7 +840,7 @@ export default function OathJobSeeker() {
   const transactionFilteredRecords = useMemo(
     () =>
       records.filter((r) =>
-        (r.id || '')
+        (r.transaction_number || '')
           .toString()
           .toLowerCase()
           .includes(transactionSearch.toLowerCase())
@@ -562,7 +852,9 @@ export default function OathJobSeeker() {
     if (!transactionSearch) return;
     const found = records.find(
       (r) =>
-        (r.id || '').toString().toLowerCase() ===
+        (r.transaction_number || '')
+          .toString()
+          .toLowerCase() ===
         transactionSearch.toLowerCase()
     );
     if (found) {
@@ -573,665 +865,629 @@ export default function OathJobSeeker() {
     }
   };
 
-  // ---------- JSX (left certificate kept largely unchanged, QR added) ----------
+  // ---------- JSX ----------
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.100', display: 'flex' }}>
-      {/* LEFT: Certificate preview */}
-      <Box
-        sx={{
-          flex: 1,
-          overflow: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: 'background.default',
-        }}
-      >
-        {/* Toolbar */}
-        <Box
-          sx={{
-            display: 'flex',
+    <ThemeProvider theme={theme}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', bgcolor: 'background.default' }}>
+        {/* TOP HEADER */}
+        <Paper elevation={2} sx={{ zIndex: 10, borderRadius: 0 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
             justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 2,
-            gap: 1,
             p: 2,
-            bgcolor: 'background.paper',
-            borderBottom: 1,
-            borderColor: 'grey.200',
-          }}
-        >
-          {/* Zoom Controls */}
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 1,
-              alignItems: 'center',
-            }}
-          >
-            <IconButton
-              onClick={handleZoomOut}
-              disabled={zoomLevel <= 0.3}
-              color="primary"
-              sx={{
-                border: '1px solid',
-                borderColor: 'grey.300',
-                '&:hover': {
-                  bgcolor: 'grey.100',
-                },
-              }}
-            >
-              <ZoomOutIcon />
-            </IconButton>
-            <Typography
-              variant="body2"
-              sx={{
-                minWidth: '60px',
-                textAlign: 'center',
-                fontWeight: 600,
-                color: 'grey.700',
-              }}
-            >
-              {Math.round(zoomLevel * 100)}%
-            </Typography>
-            <IconButton
-              onClick={handleZoomIn}
-              disabled={zoomLevel >= 2}
-              color="primary"
-              sx={{
-                border: '1px solid',
-                borderColor: 'grey.300',
-                '&:hover': {
-                  bgcolor: 'grey.100',
-                },
-              }}
-            >
-              <ZoomInIcon />
-            </IconButton>
-            <IconButton
-              onClick={handleResetZoom}
-              color="primary"
-              size="small"
-              sx={{
-                border: '1px solid',
-                borderColor: 'grey.300',
-                '&:hover': {
-                  bgcolor: 'grey.100',
-                },
-              }}
-              title="Reset Zoom"
-            >
-              <RestartAltIcon fontSize="small" />
-            </IconButton>
+            bgcolor: 'primary.main',
+            color: 'white'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar src={Logo145} sx={{ width: 48, height: 48 }} />
+              <Box>
+                <Typography variant="h5" fontWeight="bold">
+                  Oath of Undertaking Job Seeker
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Manage all records of the Oath of Undertaking Job Seeker
+                </Typography>
+              </Box>
+            </Box>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Badge badgeContent={records.length} color="secondary">
+                <Chip 
+                  icon={<FolderIcon />}
+                  label="Total Records" 
+                  sx={{ 
+                    bgcolor: "rgba(255,255,255,0.2)", 
+                    color: "white",
+                    fontWeight: 600
+                  }} 
+                />
+              </Badge>
+              
+              <Button 
+                variant="contained" 
+                color="secondary" 
+                startIcon={<AddIcon />} 
+                onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }}
+                sx={{ borderRadius: 20, px: 3 }}
+              >
+                New Certificate
+              </Button>
+            </Box>
           </Box>
 
-          {/* Right-side buttons */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              color="success"
-              onClick={handleQrCodeClick}
-              startIcon={<QrCodeIcon />}
-              disabled={!selectedRecord && !editingId}
-            >
-              View Certificate Details
-            </Button>
-            <Button
-              variant="contained"
-              color="success"
-              onClick={generatePDF}
-              startIcon={<FileTextIcon />}
-              disabled={isGeneratingPDF}
-            >
-              {isGeneratingPDF ? 'Generating PDF...' : 'Download PDF'}
-            </Button>
-            <Button
-              variant="outlined"
-              color="success"
-              startIcon={<PrintIcon />}
-              onClick={handlePrint}
-              disabled={!selectedRecord && !editingId}
-            >
-              Print
-            </Button>
+          {/* NAVIGATION TABS */}
+          <Box sx={{ bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}>
+            <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+              <Tabs 
+                value={activeTab} 
+                onChange={(e, nv) => setActiveTab(nv)} 
+                variant="fullWidth"
+                sx={{ 
+                  "& .MuiTabs-indicator": { height: 3, borderRadius: "3px 3px 0 0" },
+                  minHeight: 48
+                }}
+              >
+                <Tab 
+                  icon={<ArticleIcon />} 
+                  label="Form" 
+                  value="form"
+                  iconPosition="start"
+                />
+                <Tab 
+                  icon={<FolderIcon />} 
+                  label={`Records (${records.length})`} 
+                  value="records"
+                  iconPosition="start"
+                />
+                <Tab 
+                  icon={<ReceiptIcon />} 
+                  label="Transaction" 
+                  value="transaction"
+                  iconPosition="start"
+                />
+              </Tabs>
+            </Box>
           </Box>
-        </Box>
+        </Paper>
 
-        {/* Certificate Preview */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-            flex: 1,
-            overflow: 'auto',
-            padding: '20px 0',
-          }}
-        >
-          <div
-            style={{
-              transform: `scale(${zoomLevel})`,
-              transformOrigin: 'top center',
-            }}
-          >
-            <div
-              id="certificate-preview"
-              style={{
-                position: 'relative',
-                width: '8.5in',
-                height: '11in',
-                boxShadow: '0 0 8px rgba(0,0,0,0.2)',
-                background: '#fff',
-                overflow: 'hidden',
-              }}
-            >
-              {/* Logos */}
-              <img
-                src={CaloocanLogo}
-                alt="City Logo"
-                style={{
-                  position: 'absolute',
-                  width: '90px',
-                  top: '28px',
-                  left: '32px',
-                }}
-              />
-              <img
-                src={Logo145}
-                alt="Barangay Logo"
-                style={{
-                  position: 'absolute',
-                  width: '110px',
-                  top: '26px',
-                  right: '32px',
-                }}
-              />
+        {/* MAIN CONTENT AREA */}
+        <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* LEFT: Certificate preview */}
+          <Box sx={{ 
+            flex: 1, 
+            overflow: 'auto', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            bgcolor: 'background.default',
+            p: 2,
+            [theme.breakpoints.down('lg')]: { display: activeTab === "form" ? 'none' : 'flex' }
+          }}>
+            {/* ZOOM CONTROLS */}
+            <Paper elevation={1} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+              <Box sx={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 1
+              }}>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  <Tooltip title="Zoom Out">
+                    <IconButton onClick={handleZoomOut} color="primary" size="small">
+                      <ZoomOutIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="body2" sx={{ 
+                    minWidth: 60, 
+                    textAlign: "center", 
+                    fontWeight: 600,
+                    px: 1,
+                    py: 0.5,
+                    bgcolor: "background.paper",
+                    borderRadius: 1,
+                    color: "#000000"
+                  }}>
+                    {Math.round(zoomLevel * 100)}%
+                  </Typography>
+                  <Tooltip title="Zoom In">
+                    <IconButton onClick={handleZoomIn} color="primary" size="small">
+                      <ZoomInIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Reset Zoom">
+                    <IconButton onClick={handleResetZoom} color="primary" size="small">
+                      <ResetIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
 
-              {/* Watermark */}
-              <img src={Logo145} alt="Watermark" style={styles.watermarkImg} />
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Tooltip title="Verify Certificate">
+                    <Button 
+                      variant="outlined" 
+                      color="primary" 
+                      onClick={handleQrCodeClick} 
+                      startIcon={<QrCodeIcon />} 
+                      disabled={!display.id}
+                      size="small"
+                    >
+                      Verify
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Download PDF">
+                    <Button 
+                      variant="contained" 
+                      color="secondary" 
+                      onClick={generatePDF} 
+                      disabled={!display.id || isGeneratingPDF} 
+                      startIcon={<FileTextIcon />}
+                      size="small"
+                    >
+                      {isGeneratingPDF ? "Generating..." : "Download"}
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Print">
+                    <Button 
+                      variant="outlined" 
+                      onClick={handlePrint} 
+                      disabled={!display.id}
+                      startIcon={<PrintIcon />}
+                      size="small"
+                    >
+                      Print
+                    </Button>
+                  </Tooltip>
+                </Box>
+              </Box>
+            </Paper>
 
-              {/* Title */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '50px',
-                  width: '100%',
-                  textAlign: 'center',
-                  fontFamily: '"Times New Roman", sans-serif',
-                  fontSize: '15pt',
-                  letterSpacing: '2px',
-                  fontWeight: 'bold',
-                }}
-              >
-                OATH OF
-              </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '80px',
-                  width: '100%',
-                  textAlign: 'center',
-                  fontFamily: '"Times New Roman", sans-serif',
-                  fontSize: '19pt',
-                  letterSpacing: '2px',
-                  fontWeight: 'bold',
-                }}
-              >
-                UNDERTAKING
-              </div>
-
-              {/* Body Intro */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '160px',
-                  left: '80px',
-                  width: '640px',
-                  fontFamily: '"Times New Roman", serif',
-                  fontSize: '12pt',
-                  lineHeight: 1.6,
-                  textAlign: 'justify',
-                }}
-              >
-                I,{' '}
-                <span
+            {/* CERTIFICATE PREVIEW */}
+            <Box sx={{ 
+              display: "flex", 
+              justifyContent: "center", 
+              alignItems: "flex-start", 
+              flex: 1, 
+              overflow: "auto",
+              p: 1
+            }}>
+              <Box sx={{ transform: `scale(${zoomLevel})`, transformOrigin: "top center" }}>
+                <div
+                  id="certificate-preview"
                   style={{
-                    display: 'inline-block',
-                    minWidth: '180px',
-                    borderBottom: '1px solid black',
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                    fontStyle: 'italic',
+                    position: 'relative',
+                    width: '8.5in',
+                    height: '11in',
+                    boxShadow: '0 0 8px rgba(0,0,0,0.2)',
+                    background: '#fff',
+                    WebkitPrintColorAdjust: 'exact',
+                    printColorAdjust: 'exact',
+                    colorAdjust: 'exact',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
                   }}
                 >
-                  {(selectedRecord || formData).name || '\u00A0'}
-                </span>
-                ,{' '}
-                <b>
-                  <span
+                  {/* Logos */}
+                  <img
+                    src={CaloocanLogo}
+                    alt="City Logo"
                     style={{
-                      display: 'inline-block',
-                      minWidth: '180px',
-                      borderBottom: '1px solid black',
+                      position: 'absolute',
+                      width: '90px',
+                      top: '28px',
+                      left: '32px',
+                    }}
+                  />
+                  <img
+                    src={Logo145}
+                    alt="Barangay Logo"
+                    style={{
+                      position: 'absolute',
+                      width: '110px',
+                      top: '26px',
+                      right: '32px',
+                    }}
+                  />
+
+                  {/* Watermark */}
+                  <img src={Logo145} alt="Watermark" style={styles.watermarkImg} />
+
+                  {/* Title */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '50px',
+                      width: '100%',
                       textAlign: 'center',
-                      fontStyle: 'italic',
+                      fontFamily: '"Times New Roman", sans-serif',
+                      fontSize: '15pt',
+                      letterSpacing: '2px',
+                      fontWeight: 'bold',
                     }}
                   >
-                    {(selectedRecord || formData).age
-                      ? `${numberToWords((selectedRecord || formData).age)} (${
-                          (selectedRecord || formData).age
-                        }) yrs old`
-                      : '\u00A0'}
-                  </span>
-                </b>
-                , is Bonafide resident of{' '}
-                <b>
-                  <span
+                    OATH OF
+                  </div>
+                  <div
                     style={{
-                      display: 'inline-block',
-                      minWidth: '250px',
-                      borderBottom: '1px solid black',
+                      position: 'absolute',
+                      top: '80px',
+                      width: '100%',
                       textAlign: 'center',
+                      fontFamily: '"Times New Roman", sans-serif',
+                      fontSize: '19pt',
+                      letterSpacing: '2px',
+                      fontWeight: 'bold',
                     }}
                   >
-                    {(selectedRecord || formData).address || '\u00A0'}
-                  </span>
-                </b>{' '}
-                <b> Brgy. 145, Zone 13, </b>
-                District 1, Bagong Barrio Caloocan City for One year, availing
-                the benefits of{' '}
-                <b>
-                  <i> Republic Act 11261,</i>
-                </b>{' '}
-                otherwise known as the{' '}
-                <b>
-                  <i> First Time Jobseeker Act of 2019, </i>
-                </b>{' '}
-                do hereby declare, agree and undertake to abide and be bound by
-                the following:
-              </div>
+                    UNDERTAKING
+                  </div>
 
-              {/* List */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '300px',
-                  left: '100px',
-                  width: '610px',
-                  fontFamily: '"Times New Roman", serif',
-                  fontSize: '12pt',
-                  lineHeight: 1.2,
-                  textAlign: 'justify',
-                }}
-              >
-                {/* ... (list items unchanged) */}
-                <p>
-                  1. That this is the first time that I will actively look for a
-                  job, and therefore requesting that a Barangay Certification be
-                  issued in my favor to avail the benefits of the law;
-                </p>
-                <p>
-                  2. That I am aware that the benefit and privilege/s under the
-                  said law shall be valid only for one (1) year from the date
-                  that the Barangay Certificate is issued;
-                </p>
-                <p>3. That I can avail the benefits of the law only once;</p>
-                <p>
-                  4. That I understand that my personal information shall be
-                  included in the Roster/List of First Time Jobseekers and will
-                  not be used for any unlawful purposes;
-                </p>
-                <p>
-                  5. That I will inform and/or report to the Barangay
-                  personally, through text or other means, or through my
-                  family/relatives once I get employed; and
-                </p>
-                <p>
-                  6. That I am not a beneficiary of the Job Start Program under
-                  R.A. No. 10869 and other laws that give similar exemption for
-                  the documents of transaction exempted under R.A. No. 11261.
-                </p>
-                <p>
-                  7. That if issued the requested Certification, I will not use
-                  the same in any fraud, neither falsify nor help and/or assist
-                  in the fabrication of the said certification.
-                </p>
-                <p>
-                  8. That this undertaking is made solely for the purpose of
-                  obtaining a Barangay Certification consistent with the
-                  objective of R.A. No. 11261 and not for any other purpose.
-                </p>
-                <p>
-                  9. That I consent to the use of my personal information
-                  pursuant to the Data Privacy Act and other applicable laws,
-                  rules, and regulations.
-                </p>
-              </div>
-
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '200px',
-                  left: '95px',
-                  width: '610px',
-                  fontFamily: '"Times New Roman", serif',
-                  fontSize: '12pt',
-                  lineHeight: 1.5,
-                  textAlign: 'justify',
-                }}
-              >
-                <p>
-                  Signed this{' '}
-                  <span style={{ fontWeight: 'bold', fontStyle: 'italic' }}>
-                    {(selectedRecord || formData).dateIssued
-                      ? formatDate((selectedRecord || formData).dateIssued)
-                      : '__________________'}
-                  </span>{' '}
-                  in Barangay 145 Zone 13 District 1 at the City of Caloocan.
-                </p>
-              </div>
-
-              {/* Bottom Signatures and QR */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '130px',
-                  left: '50px',
-                  width: '260px',
-                  textAlign: 'center',
-                  fontFamily: '"Times New Roman", serif',
-                  fontSize: '12pt',
-                }}
-              >
-                {/* QR Code */}
-                {qrCodeUrl && (
-                  <div style={{ marginBottom: '-100px' }}>
-                    <div
-                      onClick={handleQrCodeClick}
+                  {/* Body Intro */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '160px',
+                      left: '80px',
+                      width: '640px',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                      lineHeight: 1.6,
+                      textAlign: 'justify',
+                    }}
+                  >
+                    I,{' '}
+                    <span
                       style={{
-                        cursor: 'pointer',
                         display: 'inline-block',
-                        position: 'relative',
+                        minWidth: '180px',
+                        borderBottom: '1px solid black',
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        fontStyle: 'italic',
                       }}
-                      title="Click to verify certificate"
                     >
-                      <img
-                        src={qrCodeUrl}
-                        alt="QR Code"
+                      {display.name || '\u00A0'}
+                    </span>
+                    ,{' '}
+                    <b>
+                      <span
                         style={{
-                          width: '140px',
-                          height: '140px',
-                          border: '2px solid #000',
-                          padding: '6px',
-                          background: '#fff',
+                          display: 'inline-block',
+                          minWidth: '180px',
+                          borderBottom: '1px solid black',
+                          textAlign: 'center',
+                          fontStyle: 'italic',
                         }}
-                      />
+                      >
+                        {display.age
+                          ? `${numberToWords(display.age)} (${display.age}) yrs old`
+                          : '\u00A0'}
+                      </span>
+                    </b>
+                    , is Bonafide resident of{' '}
+                    <b>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          minWidth: '250px',
+                          borderBottom: '1px solid black',
+                          textAlign: 'center',
+                        }}
+                      >
+                        {display.address || '\u00A0'}
+                      </span>
+                    </b>{' '}
+                    <b> Brgy. 145, Zone 13, </b>
+                    District 1, Bagong Barrio Caloocan City for One year, availing
+                    the benefits of{' '}
+                    <b>
+                      <i> Republic Act 11261,</i>
+                    </b>{' '}
+                    otherwise known as the{' '}
+                    <b>
+                      <i> First Time Jobseeker Act of 2019, </i>
+                    </b>{' '}
+                    do hereby declare, agree and undertake to abide and be bound by
+                    the following:
+                  </div>
+
+                  {/* List */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '300px',
+                      left: '100px',
+                      width: '610px',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                      lineHeight: 1.2,
+                      textAlign: 'justify',
+                    }}
+                  >
+                    <p>
+                      1. That this is the first time that I will actively look for a
+                      job, and therefore requesting that a Barangay Certification be
+                      issued in my favor to avail the benefits of the law;
+                    </p>
+                    <p>
+                      2. That I am aware that the benefit and privilege/s under the
+                      said law shall be valid only for one (1) year from the date
+                      that the Barangay Certificate is issued;
+                    </p>
+                    <p>3. That I can avail the benefits of the law only once;</p>
+                    <p>
+                      4. That I understand that my personal information shall be
+                      included in the Roster/List of First Time Jobseekers and will
+                      not be used for any unlawful purposes;
+                    </p>
+                    <p>
+                      5. That I will inform and/or report to the Barangay
+                      personally, through text or other means, or through my
+                      family/relatives once I get employed; and
+                    </p>
+                    <p>
+                      6. That I am not a beneficiary of the Job Start Program under
+                      R.A. No. 10869 and other laws that give similar exemption for
+                      the documents of transaction exempted under R.A. No. 11261.
+                    </p>
+                    <p>
+                      7. That if issued the requested Certification, I will not use
+                      the same in any fraud, neither falsify nor help and/or assist
+                      in the fabrication of the said certification.
+                    </p>
+                    <p>
+                      8. That this undertaking is made solely for the purpose of
+                      obtaining a Barangay Certification consistent with the
+                      objective of R.A. No. 11261 and not for any other purpose.
+                    </p>
+                    <p>
+                      9. That I consent to the use of my personal information
+                      pursuant to the Data Privacy Act and other applicable laws,
+                      rules, and regulations.
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '200px',
+                      left: '95px',
+                      width: '610px',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                      lineHeight: 1.5,
+                      textAlign: 'justify',
+                    }}
+                  >
+                    <p>
+                      Signed this{' '}
+                      <span style={{ fontWeight: 'bold', fontStyle: 'italic' }}>
+                        {display.dateIssued
+                          ? formatDate(display.dateIssued)
+                          : '__________________'}
+                      </span>{' '}
+                      in Barangay 145 Zone 13 District 1 at the City of Caloocan.
+                    </p>
+                  </div>
+
+                  {/* Bottom Signatures and QR */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '140px',
+                      left: '50px',
+                      width: '260px',
+                      textAlign: 'center',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                    }}
+                  >
+                    {/* QR Code */}
+                    {qrCodeUrl && (
+                      <div style={{ marginBottom: '-100px' }}>
+                        <div
+                          onClick={handleQrCodeClick}
+                          style={{
+                            cursor: 'pointer',
+                            display: 'inline-block',
+                            position: 'relative',
+                          }}
+                          title="Click to verify certificate"
+                        >
+                          <img
+                            src={qrCodeUrl}
+                            alt="QR Code"
+                            style={{
+                              width: '120px',
+                              height: '120px',
+                              border: '2px solid #000',
+                              padding: '6px',
+                              background: '#fff',
+                            }}
+                          />
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: 'rgba(255,255,255,0)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: 0,
+                              transition: 'opacity 0.3s',
+                              borderRadius: '4px',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.opacity = '0.7';
+                              e.currentTarget.style.backgroundColor =
+                                'rgba(255,255,255,0.8)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.opacity = '0';
+                              e.currentTarget.style.backgroundColor =
+                                'rgba(255,255,255,0)';
+                            }}
+                          >
+                            <QrCodeIcon
+                              sx={{
+                                fontSize: 40,
+                                color: theme.palette.success.main,
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '8pt',
+                            color: '#666',
+                            marginTop: '6px',
+                            fontWeight: 'normal',
+                          }}
+                        >
+                          {display.dateCreated
+                            ? formatDateTimeDisplay(display.dateCreated)
+                            : new Date().toLocaleString()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '130px',
+                      right: '30px',
+                      width: '320px',
+                      textAlign: 'center',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: 'bold',
+                        fontStyle: 'italic',
+                        marginBottom: '3px',
+                      }}
+                    >
+                      {display.name || ''}
                     </div>
                     <div
                       style={{
-                        fontSize: '8pt',
-                        color: '#666',
-                        marginTop: '6px',
-                        fontWeight: 'normal',
+                        borderTop: '1px solid #000',
+                        width: '80%',
+                        margin: '0 auto 6px auto',
+                      }}
+                    />
+                    <div>First Time Job Seeker</div>
+                  </div>
+
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '40px',
+                      right: '28px',
+                      width: '320px',
+                      textAlign: 'center',
+                      fontFamily: '"Times New Roman", serif',
+                      fontSize: '12pt',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: 'bold',
+                        fontStyle: 'italic',
+                        marginBottom: '3px',
                       }}
                     >
-                      {(selectedRecord?.dateCreated &&
-                        new Date(
-                          selectedRecord.dateCreated
-                        ).toLocaleString()) ||
-                        new Date().toLocaleString()}
+                      Roselyn Pestilos Anore
+                    </div>
+                    <div
+                      style={{
+                        borderTop: '1px solid #000',
+                        width: '80%',
+                        margin: '0 auto 6px auto',
+                      }}
+                    />
+                    <div
+                      style={{
+                        marginTop: '-4px',
+                        textAlign: 'center',
+                        fontFamily: '"Times New Roman", serif',
+                        fontSize: '12pt',
+                      }}
+                    >
+                      <div>Barangay Secretary</div>
+                      <div>(Barangay Official/Designation/Position)</div>
                     </div>
                   </div>
-                )}
-              </div>
-
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '130px',
-                  right: '30px',
-                  width: '320px',
-                  textAlign: 'center',
-                  fontFamily: '"Times New Roman", serif',
-                  fontSize: '12pt',
-                }}
-              >
-                <div
-                  style={{
-                    fontWeight: 'bold',
-                    fontStyle: 'italic',
-                    marginBottom: '3px',
-                  }}
-                >
-                  {(selectedRecord || formData).name || ''}
                 </div>
-                <div
-                  style={{
-                    borderTop: '1px solid #000',
-                    width: '80%',
-                    margin: '0 auto 6px auto',
-                  }}
-                />
-                <div>First Time Job Seeker</div>
-              </div>
-
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '40px',
-                  right: '28px',
-                  width: '320px',
-                  textAlign: 'center',
-                  fontFamily: '"Times New Roman", serif',
-                  fontSize: '12pt',
-                  fontWeight: 'bold',
-                }}
-              >
-                <div
-                  style={{
-                    fontWeight: 'bold',
-                    fontStyle: 'italic',
-                    marginBottom: '3px',
-                  }}
-                >
-                  Roselyn Pestilos Anore
-                </div>
-                <div
-                  style={{
-                    borderTop: '1px solid #000',
-                    width: '80%',
-                    margin: '0 auto 6px auto',
-                  }}
-                />
-                <div
-                  style={{
-                    marginTop: '-4px',
-                    textAlign: 'center',
-                    fontFamily: '"Times New Roman", serif',
-                    fontSize: '12pt',
-                  }}
-                >
-                  <div>Barangay Secretary</div>
-                  <div>(Barangay Official/Designation/Position)</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <style>
-          {`
-      @media print {
-        body * { visibility: hidden; }
-        #certificate-preview, #certificate-preview * { visibility: visible; }
-        #certificate-preview { position: absolute; left: 0; top: 0; width: 8.5in; height: 11in; transform: none !important; }
-        @page { size: portrait; margin: 0; }
-        #certificate-preview * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-      }
-    `}
-        </style>
-      </Box>
-
-      <Container
-        maxWidth={false}
-        sx={{
-          flexGrow: 1,
-          minWidth: '400px',
-          maxWidth: '600px',
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: 'background.default',
-          borderLeft: 1,
-          borderColor: 'grey.300',
-          p: 0,
-        }}
-        disableGutters
-      >
-        <Paper
-          sx={{
-            flexGrow: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            bgcolor: 'background.paper',
-            borderRadius: 0,
-          }}
-        >
-          {/* Sticky Header */}
-          <Paper
-            elevation={0}
-            sx={{
-              position: 'sticky',
-              paddingTop: 5,
-              zIndex: 10,
-              bgcolor: 'rgba(255,255,255,0.9)',
-              backdropFilter: 'blur(8px)',
-              borderBottom: 1,
-              borderColor: 'grey.200',
-            }}
-          >
-            <Box
-              sx={{
-                px: 2,
-                py: 1.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 800, color: 'success.main' }}
-              >
-                Oath Job Seeker
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<PrintIcon />}
-                  onClick={handlePrint}
-                  disabled={!selectedRecord && !editingId}
-                  sx={{
-                    color: 'success.main',
-                    borderColor: 'success.main',
-                    '&:hover': {
-                      bgcolor: 'success.main',
-                      color: '#fff',
-                      borderColor: 'success.main',
-                    },
-                  }}
-                >
-                  Print
-                </Button>
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => {
-                    resetForm();
-                    setIsFormOpen(true);
-                    setActiveTab('form');
-                  }}
-                  sx={{
-                    bgcolor: 'success.main',
-                    '&:hover': { bgcolor: '#1b5e20' },
-                  }}
-                >
-                  New
-                </Button>
               </Box>
             </Box>
 
-            <Box sx={{ px: 1, pb: 1 }}>
-              <Paper
-                sx={{ p: 0.5, bgcolor: 'background.default', borderRadius: 2 }}
-              >
-                <Tabs
-                  value={activeTab}
-                  onChange={(e, v) => setActiveTab(v)}
-                  variant="fullWidth"
-                  sx={{
-                    minHeight: 'unset',
-                    '& .MuiTabs-flexContainer': { gap: 0.5 },
-                    '& .Mui-selected': {
-                      color: 'success.main !important',
-                      fontWeight: 600,
-                    },
-                    '& .MuiTabs-indicator': {
-                      backgroundColor: 'success.main',
-                    },
-                  }}
-                >
-                  <Tab
-                    value="form"
-                    label="Form"
-                    sx={{ minHeight: 'unset', py: 1 }}
-                  />
-                  <Tab
-                    value="records"
-                    label={`Records (${records.length})`}
-                    sx={{ minHeight: 'unset', py: 1 }}
-                  />
-                  <Tab
-                    value="transaction"
-                    label="Transaction"
-                    sx={{ minHeight: 'unset', py: 1 }}
-                  />
-                </Tabs>
-              </Paper>
-            </Box>
-          </Paper>
+            <style>
+              {`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #certificate-preview, #certificate-preview * {
+            visibility: visible;
+          }
+          #certificate-preview {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 8.5in;
+            height: 11in;
+            transform: none !important; /* Remove any transforms */
+          }
+          @page {
+            size: portrait;
+            margin: 0;
+          }
+          /* Ensure colors are preserved when printing */
+          #certificate-preview * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+        }
+      `}
+            </style>
+          </Box>
 
-          {/* Form Tab */}
-          {activeTab === 'form' && (
-            <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
-              <Card sx={{ borderRadius: 3, boxShadow: 1 }}>
-                <CardHeader
-                  title={
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        color: 'grey.800',
-                      }}
-                    >
-                      {editingId ? 'Edit Record' : 'New Oath Record'}
+          {/* RIGHT: FORM/RECORDS PANEL */}
+          <Box sx={{ 
+            width: { xs: '100%', md: '50%', lg: '40%' }, 
+            bgcolor: "background.paper", 
+            borderLeft: { xs: 0, md: 1 }, 
+            borderColor: "divider",
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* FORM */}
+            {activeTab === "form" && (
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+                    <ArticleIcon color="primary" />
+                    {editingId ? "Edit Certificate" : "New Oath of Undertaking"}
+                  </Typography>
+                  {selectedRecord && !editingId && (
+                    <Typography variant="body2" color="text.secondary">
+                      Viewing: {selectedRecord.name}
                     </Typography>
-                  }
-                  subheader={
-                    selectedRecord &&
-                    !editingId && (
-                      <Typography variant="caption" sx={{ color: 'grey.500' }}>
-                        Viewing: {selectedRecord.name}
-                      </Typography>
-                    )
-                  }
-                  sx={{ borderBottom: 1, borderColor: 'grey.200' }}
-                />
-                <CardContent>
-                  <Stack spacing={2}>
+                  )}
+                </Paper>
+
+                <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
+                  <Stack spacing={3}>
                     <Autocomplete
                       options={residents}
                       getOptionLabel={(option) => option.full_name || ''}
@@ -1246,8 +1502,8 @@ export default function OathJobSeeker() {
                             resident_id: value.id,
                             name: value.full_name,
                             address: value.address || '',
-                            birthday: value.birthday?.slice(0, 10) || '',
-                            age: calculateAge(value.birthday?.slice(0, 10)),
+                            dob: value.dob?.slice(0, 10) || '',
+                            age: calculateAge(value.dob?.slice(0, 10)),
                           });
                         } else {
                           setFormData({
@@ -1255,7 +1511,7 @@ export default function OathJobSeeker() {
                             resident_id: null,
                             name: '',
                             address: '',
-                            birthday: '',
+                            dob: '',
                             age: '',
                           });
                         }
@@ -1267,19 +1523,7 @@ export default function OathJobSeeker() {
                           variant="outlined"
                           size="small"
                           fullWidth
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '&:hover fieldset': {
-                                borderColor: 'success.main',
-                              },
-                              '&.Mui-focused fieldset': {
-                                borderColor: 'success.main',
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                              color: 'success.main',
-                            },
-                          }}
+                          required
                         />
                       )}
                     />
@@ -1295,17 +1539,7 @@ export default function OathJobSeeker() {
                       onChange={(e) =>
                         setFormData({ ...formData, address: e.target.value })
                       }
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': { borderColor: 'success.main' },
-                          '&.Mui-focused fieldset': {
-                            borderColor: 'success.main',
-                          },
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': {
-                          color: 'success.main',
-                        },
-                      }}
+                      required
                     />
 
                     <Grid container spacing={1.5}>
@@ -1317,25 +1551,13 @@ export default function OathJobSeeker() {
                           size="small"
                           fullWidth
                           InputLabelProps={{ shrink: true }}
-                          value={formData.birthday}
+                          value={formData.dob}
                           onChange={(e) => {
                             const dob = e.target.value;
                             const age = calculateAge(dob);
-                            setFormData({ ...formData, birthday: dob, age });
+                            setFormData({ ...formData, dob: dob, age });
                           }}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '&:hover fieldset': {
-                                borderColor: 'success.main',
-                              },
-                              '&.Mui-focused fieldset': {
-                                borderColor: 'success.main',
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                              color: 'success.main',
-                            },
-                          }}
+                          required
                         />
                       </Grid>
                       <Grid item xs={6}>
@@ -1364,17 +1586,7 @@ export default function OathJobSeeker() {
                       onChange={(e) =>
                         setFormData({ ...formData, dateIssued: e.target.value })
                       }
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': { borderColor: 'success.main' },
-                          '&.Mui-focused fieldset': {
-                            borderColor: 'success.main',
-                          },
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': {
-                          color: 'success.main',
-                        },
-                      }}
+                      required
                     />
 
                     <Box sx={{ display: 'flex', gap: 1, pt: 1 }}>
@@ -1383,13 +1595,8 @@ export default function OathJobSeeker() {
                         variant="contained"
                         startIcon={<SaveIcon />}
                         fullWidth
-                        sx={{
-                          bgcolor: 'success.main',
-                          '&:hover': { bgcolor: '#1b5e20' },
-                          fontWeight: 500,
-                          py: 1.25,
-                          textTransform: 'none',
-                        }}
+                        color="primary"
+                        size="large"
                       >
                         {editingId ? 'Update' : 'Save'}
                       </Button>
@@ -1398,333 +1605,111 @@ export default function OathJobSeeker() {
                           onClick={resetForm}
                           variant="outlined"
                           startIcon={<CloseIcon />}
-                          sx={{
-                            color: 'success.main',
-                            borderColor: 'success.main',
-                            '&:hover': {
-                              bgcolor: '#e8f5e9',
-                              borderColor: 'success.main',
-                            },
-                            py: 1.25,
-                            px: 2,
-                            textTransform: 'none',
-                          }}
+                          color="primary"
+                          size="large"
                         >
                           Cancel
                         </Button>
                       )}
                     </Box>
                   </Stack>
-                </CardContent>
-              </Card>
-            </Box>
-          )}
-
-          {/* Records Tab */}
-          {activeTab === 'records' && (
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Box sx={{ p: 1.5 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Search records..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ color: 'grey.400', fontSize: 20 }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': { borderColor: 'success.main' },
-                      '&.Mui-focused fieldset': { borderColor: 'success.main' },
-                    },
-                  }}
-                />
+                </Box>
               </Box>
+            )}
 
-              <Box sx={{ flex: 1, overflow: 'auto', px: 1.5, pb: 1.5 }}>
-                {filteredRecords.length === 0 ? (
-                  <Paper sx={{ p: 3, textAlign: 'center', color: 'grey.500' }}>
-                    <Typography variant="body2">
-                      {searchTerm ? 'No records found' : 'No records yet'}
-                    </Typography>
-                  </Paper>
-                ) : (
-                  <Stack spacing={1}>
-                    {filteredRecords.map((record) => (
-                      <Card
-                        key={record.id}
-                        sx={{
-                          boxShadow: 1,
-                          '&:hover': { boxShadow: 2 },
-                          transition: 'box-shadow 0.2s',
-                        }}
-                      >
-                        <CardContent
-                          sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}
-                        >
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'flex-start',
-                            }}
-                          >
-                            <Box sx={{ flex: 1 }}>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  fontWeight: 600,
-                                  color: 'grey.900',
-                                  mb: 0.5,
-                                }}
-                              >
-                                {record.name}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: 'grey.600',
-                                  display: 'block',
-                                  mb: 0.5,
-                                }}
-                              >
-                                {record.address}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: 'grey.400',
-                                  fontSize: '0.625rem',
-                                }}
-                              >
-                                Issued: {formatDate(record.dateIssued)}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleView(record)}
-                                sx={{
-                                  color: 'success.main',
-                                  '&:hover': { bgcolor: 'success.lighter' },
-                                  p: 0.75,
-                                }}
-                                title="View"
-                              >
-                                <EyeIcon sx={{ fontSize: 16 }} />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleEdit(record)}
-                                sx={{
-                                  color: 'success.main',
-                                  '&:hover': { bgcolor: 'success.lighter' },
-                                  p: 0.75,
-                                }}
-                                title="Edit"
-                              >
-                                <EditIcon sx={{ fontSize: 16 }} />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleDelete(record.id)}
-                                sx={{
-                                  color: 'error.main',
-                                  '&:hover': { bgcolor: 'error.lighter' },
-                                  p: 0.75,
-                                }}
-                                title="Delete"
-                              >
-                                <DeleteIcon sx={{ fontSize: 16 }} />
-                              </IconButton>
-                            </Box>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </Stack>
-                )}
-              </Box>
-            </Box>
-          )}
-
-          {/* Transaction Tab */}
-          {activeTab === 'transaction' && (
-            <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
-              <Card sx={{ borderRadius: 3, boxShadow: 1, mb: 2 }}>
-                <CardHeader
-                  title={
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        color: 'grey.800',
-                      }}
-                    >
-                      Search by Transaction Number
-                    </Typography>
-                  }
-                  sx={{ borderBottom: 1, borderColor: 'grey.200' }}
-                />
-                <CardContent>
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="Enter transaction ID"
-                      value={transactionSearch}
-                      onChange={(e) => setTransactionSearch(e.target.value)}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <ReceiptIcon
-                              sx={{ color: 'grey.400', fontSize: 20 }}
-                            />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                    <Button
-                      variant="contained"
-                      onClick={handleTransactionSearch}
-                      startIcon={<SearchIcon />}
-                      sx={{
-                        bgcolor: 'success.main',
-                        '&:hover': { bgcolor: '#1b5e20' },
-                        px: 3,
-                      }}
-                    >
-                      Search
-                    </Button>
-                  </Box>
-                  <Typography variant="caption" sx={{ color: 'grey.500' }}>
-                    Use the transaction ID (record id) to quickly find
-                    certificates.
+            {/* RECORDS */}
+            {activeTab === "records" && (
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                    <FolderIcon color="primary" />
+                    Certificate Records
                   </Typography>
-                </CardContent>
-              </Card>
+                  <TextField 
+                    fullWidth 
+                    size="small" 
+                    placeholder="Search by name, address, or contact no." 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                    InputProps={{ 
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      ) 
+                    }} 
+                  />
+                </Paper>
 
-              <Card sx={{ borderRadius: 3, boxShadow: 1 }}>
-                <CardHeader
-                  title={
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        color: 'grey.800',
-                      }}
-                    >
-                      Recent Transactions
-                    </Typography>
-                  }
-                  sx={{ borderBottom: 1, borderColor: 'grey.200' }}
-                />
-                <CardContent sx={{ p: 0 }}>
-                  {transactionFilteredRecords.length === 0 ? (
-                    <Box sx={{ p: 3, textAlign: 'center', color: 'grey.500' }}>
-                      <Typography variant="body2">
-                        {transactionSearch
-                          ? 'No transactions found'
-                          : 'Enter a transaction number to search'}
+                <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
+                  {filteredRecords.length === 0 ? (
+                    <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
+                      <FolderIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                      <Typography variant="h6" gutterBottom>
+                        {searchTerm ? "No records found" : "No records yet"}
                       </Typography>
-                    </Box>
+                      <Typography variant="body2">
+                        {searchTerm ? "Try a different search term" : "Create your first certificate to get started"}
+                      </Typography>
+                    </Paper>
                   ) : (
-                    <Stack spacing={1}>
-                      {transactionFilteredRecords.map((record) => (
-                        <Card
-                          key={record.id}
-                          sx={{
-                            boxShadow: 0,
-                            '&:hover': { boxShadow: 1 },
-                            transition: 'box-shadow 0.2s',
-                            borderLeft: 3,
-                            borderColor: 'success.main',
-                          }}
-                        >
-                          <CardContent
-                            sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}
-                          >
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                              }}
-                            >
+                    <Stack spacing={2}>
+                      {filteredRecords.map((record) => (
+                        <Card key={record.id} sx={{ 
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          borderLeft: 4,
+                          borderColor: "primary.main",
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                               <Box sx={{ flex: 1 }}>
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    fontWeight: 600,
-                                    color: 'success.main',
-                                    mb: 0.5,
-                                  }}
-                                >
+                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5, color: "#000000" }}>
                                   {record.name}
                                 </Typography>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: 'success.main',
-                                    display: 'block',
-                                    mb: 0.5,
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  {record.id}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: 'grey.600',
-                                    display: 'block',
-                                    mb: 0.5,
-                                  }}
-                                >
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                                   {record.address}
                                 </Typography>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: 'grey.400',
-                                    fontSize: '0.625rem',
-                                  }}
-                                >
-                                  Issued: {formatDate(record.dateIssued)}
-                                </Typography>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                                  <Chip 
+                                    label={record.transaction_number || 'N/A'} 
+                                    size="small" 
+                                    color="primary" 
+                                    variant="outlined" 
+                                  />
+                                  <Typography variant="caption" color="text.secondary">
+                                    Issued: {formatDateDisplay(record.dateIssued)}
+                                  </Typography>
+                                </Box>
                               </Box>
-                              <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleView(record)}
-                                  sx={{
-                                    color: 'success.main',
-                                    '&:hover': { bgcolor: 'success.lighter' },
-                                    p: 0.75,
-                                  }}
-                                  title="View"
-                                >
-                                  <EyeIcon sx={{ fontSize: 16 }} />
-                                </IconButton>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleEdit(record)}
-                                  sx={{
-                                    color: 'success.main',
-                                    '&:hover': { bgcolor: 'success.lighter' },
-                                    p: 0.75,
-                                  }}
-                                  title="Edit"
-                                >
-                                  <EditIcon sx={{ fontSize: 16 }} />
-                                </IconButton>
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Tooltip title="View">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleView(record)} 
+                                    color="primary"
+                                  >
+                                    <EyeIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Edit">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleEdit(record)} 
+                                    color="success"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleDelete(record.id)} 
+                                    color="error"
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
                               </Box>
                             </Box>
                           </CardContent>
@@ -1732,45 +1717,246 @@ export default function OathJobSeeker() {
                       ))}
                     </Stack>
                   )}
-                </CardContent>
-              </Card>
-            </Box>
-          )}
-        </Paper>
-      </Container>
+                </Box>
+              </Box>
+            )}
 
-      {/* QR Dialog (for unsaved drafts) */}
+            {/* TRANSACTION */}
+            {activeTab === "transaction" && (
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ p: 3, borderBottom: 1, borderColor: "divider" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                    <ReceiptIcon color="primary" />
+                    Transaction Search
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <TextField 
+                      fullWidth 
+                      size="small" 
+                      placeholder="Enter transaction number" 
+                      value={transactionSearch} 
+                      onChange={(e) => setTransactionSearch(e.target.value)} 
+                      InputProps={{ 
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <ReceiptIcon />
+                          </InputAdornment>
+                        ) 
+                      }} 
+                    />
+                    <Button 
+                      variant="contained" 
+                      color="primary" 
+                      onClick={handleTransactionSearch} 
+                      startIcon={<SearchIcon />}
+                    >
+                      Search
+                    </Button>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                    Format: OJS-YYMMDD-XXX
+                  </Typography>
+                </Paper>
+
+                <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
+                  {transactionFilteredRecords.length === 0 ? (
+                    <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
+                      <ReceiptIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                      <Typography variant="h6" gutterBottom>
+                        No transactions found
+                      </Typography>
+                      <Typography variant="body2">
+                        Enter a transaction number to search
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    <Stack spacing={2}>
+                      {transactionFilteredRecords.map((r) => (
+                        <Card key={r.id} sx={{ 
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          borderLeft: 4,
+                          borderColor: "secondary.main",
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5, color: "#000000" }}>
+                                  {r.name}
+                                </Typography>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                                  <Chip 
+                                    label={r.transaction_number} 
+                                    size="small" 
+                                    color="secondary" 
+                                    variant="outlined" 
+                                  />
+                                </Box>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                  {r.address}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Issued: {formatDateDisplay(r.dateIssued)}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Tooltip title="View">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleView(r)} 
+                                    color="primary"
+                                  >
+                                    <EyeIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Edit">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={() => handleEdit(r)} 
+                                    color="success"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        </Box>
+
+        {/* FLOATING ACTION BUTTON FOR MOBILE */}
+        {isMobile && activeTab !== "form" && (
+          <Fab
+            color="primary"
+            aria-label="add"
+            sx={{
+              position: 'absolute',
+              bottom: 16,
+              right: 16,
+            }}
+            onClick={() => { resetForm(); setIsFormOpen(true); setActiveTab("form"); }}
+          >
+            <AddIcon />
+          </Fab>
+        )}
+      </Box>
+
+      {/* QR Code Details Dialog */}
       <Dialog
         open={qrDialogOpen}
         onClose={() => setQrDialogOpen(false)}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Certificate Details (Draft)</DialogTitle>
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
+          Certificate Details
+        </DialogTitle>
         <DialogContent dividers>
-          <Typography variant="body2">
-            <strong>Name: </strong>
-            {formData.name || 'Draft'}
-          </Typography>
-          <Typography variant="body2">
-            <strong>Date Issued: </strong>
-            {formData.dateIssued}
-          </Typography>
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
-            {qrCodeUrl && (
-              <img
-                src={qrCodeUrl}
-                alt="QR Preview"
-                style={{ width: 160, height: 160 }}
-              />
-            )}
-          </Box>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Certificate ID:
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                {display.id || 'Draft (Not yet saved)'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Transaction Number:
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                {display.transaction_number || 'N/A'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Full Name:
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                {display.name}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Address:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.address}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Date of Birth:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.dob ? formatDateDisplay(display.dob) : 'N/A'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Age:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.age}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Date Issued:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {formatDateDisplay(display.dateIssued)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                Date Created:
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {display.dateCreated
+                  ? formatDateTimeDisplay(display.dateCreated)
+                  : 'N/A'}
+              </Typography>
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setQrDialogOpen(false)}>Close</Button>
+          <Button onClick={() => setQrDialogOpen(false)} color="primary">
+            Close
+          </Button>
+          {display.id && (
+            <Button
+              onClick={() => {
+                const verificationUrl = `${window.location.origin}/verify-oath-job-seeker?id=${display.id}`;
+                window.open(verificationUrl, '_blank');
+                setQrDialogOpen(false);
+              }}
+              variant="contained"
+              color="primary"
+            >
+              Go to Verification Page
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
-    </Box>
+    </ThemeProvider>
   );
 }
 
@@ -1828,6 +2014,7 @@ function OathJobVerification() {
             age: data.age,
             dateIssued: data.date_issued,
             dateCreated: data.date_created,
+            transaction_number: data.transaction_number,
           });
         } else {
           setError('Certificate not found.');
@@ -1843,7 +2030,7 @@ function OathJobVerification() {
   React.useEffect(() => {
     if (record) {
       const verificationUrl = `${window.location.origin}/verify-oath-job-seeker?id=${record.id}`;
-      const qrData = `OATH JOB SEEKER CERTIFICATE\nName: ${record.name}\nDate Issued: ${record.dateIssued}\nURL: ${verificationUrl}`;
+      const qrData = `OATH JOB SEEKER CERTIFICATE\nTransaction Number: ${record.transaction_number || 'N/A'}\nName: ${record.name}\nDate Issued: ${record.dateIssued}\nURL: ${verificationUrl}`;
       import('qrcode').then((QR) => {
         QR.toDataURL(qrData).then(setQrCodeUrl);
       });

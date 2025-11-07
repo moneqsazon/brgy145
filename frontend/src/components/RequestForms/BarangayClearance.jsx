@@ -443,33 +443,48 @@ export default function BarangayClearance() {
         // Store the certificate data in localStorage
         storeCertificateData(display);
 
-        // For QR: use LAN_DEV_BASE_URL if set, else window.location.origin
-        const verificationOrigin = window.location.origin;
-        const verificationUrl = `${verificationOrigin}/verify-certificate?id=${display.barangay_clearance_id || 'draft'}`;
-
-        const qrContent = `Verification Link: ${verificationUrl}\nTransaction No: ${display.transaction_number || 'N/A'}\nName: ${display.full_name}`;
-
-        try {
-          const qrUrl = await QRCode.toDataURL(qrContent, {
-            width: 140,
-            margin: 1,
-            color: {
-              dark: '#000000',
-              light: '#FFFFFF',
-            },
-            errorCorrectionLevel: 'L',
-          });
-          setQrCodeUrl(qrUrl);
-        } catch (err) {
-          console.error('Failed to generate QR code:', err);
-        }
-      } else {
-        setQrCodeUrl('');
-      }
-    };
-
-    generateQRCode();
-  }, [display]);
+        // Create a URL that points to a verification page
+                // Using window.location.origin to get the current domain
+                const verificationUrl = `${
+                  window.location.origin
+                }/verify-certificate?id=${display.barangay_clearance_id || 'draft'}`;
+        
+                const qrContent = `CERTIFICATE VERIFICATION:
+                𝗧𝗿𝗮𝗻𝘀𝗮𝗰𝘁𝗶𝗼𝗻 𝗡𝗼: ${display.transaction_number || 'N/A'}
+                Name: ${display.full_name}
+                Date Issued: ${
+                display.date_created
+                ? formatDateTimeDisplay(display.date_created)
+                : new Date().toLocaleString()
+                }
+                Document Type: Barangay Clearance
+               
+                Ⓒ RRMS | BARANGAY 145
+                CALOOCAN CITY
+                ALL RIGHTS RESERVED
+                `;
+        
+                try {
+                  const qrUrl = await QRCode.toDataURL(qrContent, {
+                    width: 140,
+                    margin: 1,
+                    color: {
+                      dark: '#000000',
+                      light: '#FFFFFF',
+                    },
+                    errorCorrectionLevel: 'L',
+                  });
+                  setQrCodeUrl(qrUrl);
+                } catch (err) {
+                  console.error('Failed to generate QR code:', err);
+                }
+              } else {
+                setQrCodeUrl('');
+              }
+            };
+        
+            generateQRCode();
+          }, [display]);
 
   function toServerPayload(data) {
     return {
@@ -689,89 +704,86 @@ export default function BarangayClearance() {
   }
 
   function handlePrint() {
+    // Check if there's a certificate to print
     if (!display.barangay_clearance_id) {
       alert('Please save the record first before printing');
       return;
     }
 
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank');
-
-    // Get the certificate HTML
+    // 1. Get the certificate element
     const certificateElement = document.getElementById('certificate-preview');
-    const certificateHTML = certificateElement.outerHTML;
+    if (!certificateElement) {
+      alert('Certificate not found for printing.');
+      return;
+    }
 
-    // Create the print document with proper styles
-    printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Print Certificate</title>
-        <style>
-          @page {
-            size: 8.5in 11in;
-            margin: 0;
-          }
-          
-          body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-          }
-          
-          #certificate-preview {
-            width: 8.5in;
-            height: 11in;
-            position: relative;
-            overflow: hidden;
-            background: white;
-            box-sizing: border-box;
-          }
-          
-          /* Ensure all colors are preserved */
-          #certificate-preview * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-          }
-          
-          /* Remove any hover effects for printing */
-          #certificate-preview *:hover {
-            background-color: transparent !important;
-            color: inherit !important;
-          }
-          
-          /* Make sure images are properly sized */
-          #certificate-preview img {
-            max-width: 100%;
-            height: auto;
-          }
-          
-          /* Ensure text doesn't wrap unexpectedly */
-          #certificate-preview span, #certificate-preview div {
-            white-space: pre;
-            overflow: visible;
-          }
-        </style>
-      </head>
-      <body>
-        ${certificateHTML}
-        <script>
-          window.onload = function() {
-            window.print();
-            window.onafterprint = function() {
-              window.close();
-            };
-          };
-        </script>
-      </body>
-    </html>
-  `);
+    // 2. Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px'; // Move it way off-screen
+    iframe.style.top = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    document.body.appendChild(iframe);
 
-    printWindow.document.close();
+    // 3. Write the certificate content and styles into the iframe
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Certificate</title>
+          <style>
+            @page {
+              size: 8.5in 11in;
+              margin: 0;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            #certificate-preview {
+              width: 8.5in;
+              height: 11in;
+              position: relative;
+              overflow: hidden;
+              background: white;
+              box-sizing: border-box;
+            }
+            #certificate-preview * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+          </style>
+        </head>
+        <body>
+          ${certificateElement.outerHTML}
+        </body>
+      </html>
+    `);
+    iframeDoc.close();
+
+    // 4. Trigger the print dialog once the iframe content is loaded
+    setTimeout(() => {
+      const iframeWindow = iframe.contentWindow || iframe;
+      iframeWindow.focus(); // Required for some browsers
+      iframeWindow.print();
+
+      // 5. Clean up by removing the iframe after the print dialog
+      window.onafterprint = () => {
+        document.body.removeChild(iframe);
+      };
+      // Fallback cleanup in case onafterprint doesn't fire
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    }, 250); // A short delay to render
   }
 
   // Function to handle QR code click

@@ -26,23 +26,8 @@ const Reports = () => {
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
 
-  // Original certificate types
-  const [indigencyData, setIndigencyData] = useState([]);
-  const [barangayClearanceData, setBarangayClearanceData] = useState([]);
-  const [businessClearanceData, setBusinessClearanceData] = useState([]);
-  const [certificateOfResidencyData, setCertificateOfResidencyData] = useState([]);
-  const [permitToTravelData, setPermitToTravelData] = useState([]);
-  
-  // Additional certificate types
-  const [oathJobData, setOathJobData] = useState([]);
-  const [cashAssistanceData, setCashAssistanceData] = useState([]);
-  const [financialAssistanceData, setFinancialAssistanceData] = useState([]);
-  const [bhertPositiveData, setBhertPositiveData] = useState([]);
-  const [bhertNormalData, setBhertNormalData] = useState([]);
-  const [certificateOfActionData, setCertificateOfActionData] = useState([]);
-  const [certificateOfCohabitationData, setCertificateOfCohabitationData] = useState([]);
-  const [soloParentData, setSoloParentData] = useState([]);
-  
+  // Single state for all certificates from the database
+  const [certificates, setCertificates] = useState([]);
   const [residents, setResidents] = useState([]);
   const [selectedResident, setSelectedResident] = useState(null);
   const [monthFilter, setMonthFilter] = useState(currentMonth);
@@ -64,80 +49,25 @@ const Reports = () => {
   const [soloParentReportData, setSoloParentReportData] = useState([]);
 
   useEffect(() => {
-    fetchAllCertificateData();
+    fetchCertificates();
     fetchResidents();
   }, []);
 
   useEffect(() => {
     generateAllReports();
   }, [
-    indigencyData, 
-    barangayClearanceData, 
-    businessClearanceData, 
-    certificateOfResidencyData, 
-    permitToTravelData,
-    oathJobData,
-    cashAssistanceData,
-    financialAssistanceData,
-    bhertPositiveData,
-    bhertNormalData,
-    certificateOfActionData,
-    certificateOfCohabitationData,
-    soloParentData,
+    certificates,
     monthFilter, 
     yearFilter, 
     selectedResident
   ]);
 
-  const fetchAllCertificateData = async () => {
+  const fetchCertificates = async () => {
     try {
-      // Fetch all certificate types
-      const [
-        indigencyRes, 
-        barangayClearanceRes, 
-        businessClearanceRes, 
-        certificateOfResidencyRes, 
-        permitToTravelRes,
-        oathJobRes,
-        cashAssistanceRes,
-        financialAssistanceRes,
-        bhertPositiveRes,
-        bhertNormalRes,
-        certificateOfActionRes,
-        certificateOfCohabitationRes,
-        soloParentRes
-      ] = await Promise.all([
-        axios.get('http://localhost:5000/indigency'),
-        axios.get('http://localhost:5000/barangay-clearance'),
-        axios.get('http://localhost:5000/business-clearance'),
-        axios.get('http://localhost:5000/certificate-of-residency'),
-        axios.get('http://localhost:5000/permit-to-travel'),
-        axios.get('http://localhost:5000/oath-job'),
-        axios.get('http://localhost:5000/cash-assistance'),
-        axios.get('http://localhost:5000/financial-assistance'),
-        axios.get('http://localhost:5000/bhert-certificate-positive'),
-        axios.get('http://localhost:5000/bhert-certificate-normal'),
-        axios.get('http://localhost:5000/certificate-of-action'),
-        axios.get('http://localhost:5000/certificate-of-cohabitation'),
-        axios.get('http://localhost:5000/solo-parent-records')
-      ]);
-      
-      // Set original certificate types
-      setIndigencyData(indigencyRes.data);
-      setBarangayClearanceData(barangayClearanceRes.data);
-      setBusinessClearanceData(businessClearanceRes.data);
-      setCertificateOfResidencyData(certificateOfResidencyRes.data);
-      setPermitToTravelData(permitToTravelRes.data);
-      
-      // Set additional certificate types
-      setOathJobData(oathJobRes.data);
-      setCashAssistanceData(cashAssistanceRes.data);
-      setFinancialAssistanceData(financialAssistanceRes.data);
-      setBhertPositiveData(bhertPositiveRes.data);
-      setBhertNormalData(bhertNormalRes.data);
-      setCertificateOfActionData(certificateOfActionRes.data);
-      setCertificateOfCohabitationData(certificateOfCohabitationRes.data);
-      setSoloParentData(soloParentRes.data);
+      // Fetch all certificates from a single endpoint
+      const res = await axios.get('http://localhost:5000/certificates');
+      console.log('Certificates data:', res.data); // Debug log to see what we're getting
+      setCertificates(res.data);
     } catch (error) {
       console.error('Error fetching certificate data:', error);
     }
@@ -158,7 +88,7 @@ const Reports = () => {
     // Filter by month
     if (monthFilter !== 'all') {
       filteredData = filteredData.filter(item => {
-        const itemMonth = new Date(item.date_created || item.date_issued).getMonth() + 1;
+        const itemMonth = new Date(item.date_issued).getMonth() + 1;
         return itemMonth === parseInt(monthFilter);
       });
     }
@@ -166,7 +96,7 @@ const Reports = () => {
     // Filter by year
     if (yearFilter !== 'all') {
       filteredData = filteredData.filter(item => {
-        const itemYear = new Date(item.date_created || item.date_issued).getFullYear();
+        const itemYear = new Date(item.date_issued).getFullYear();
         return itemYear === parseInt(yearFilter);
       });
     }
@@ -182,11 +112,16 @@ const Reports = () => {
   };
 
   const generateAllReports = () => {
-    // Process indigency data
-    const filteredIndigency = filterDataByDateAndResident(indigencyData);
+    // Filter certificates by date and resident first
+    const filteredCertificates = filterDataByDateAndResident(certificates);
+    
+    // Process indigency data - Note: Database has "Barangay Indigency" not just "Indigency"
+    const indigencyCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'Barangay Indigency'
+    );
     const indigencyCounts = {};
-    filteredIndigency.forEach(item => {
-      const reason = item.request_reason || 'Not specified';
+    indigencyCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
       indigencyCounts[reason] = (indigencyCounts[reason] || 0) + 1;
     });
     const indigencyChartData = Object.keys(indigencyCounts).map(reason => ({
@@ -196,10 +131,12 @@ const Reports = () => {
     setIndigencyReportData(indigencyChartData);
 
     // Process barangay clearance data
-    const filteredBarangayClearance = filterDataByDateAndResident(barangayClearanceData);
+    const barangayClearanceCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'Barangay Clearance'
+    );
     const barangayClearanceCounts = {};
-    filteredBarangayClearance.forEach(item => {
-      const reason = item.request_reason || 'Not specified';
+    barangayClearanceCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
       barangayClearanceCounts[reason] = (barangayClearanceCounts[reason] || 0) + 1;
     });
     const barangayClearanceChartData = Object.keys(barangayClearanceCounts).map(reason => ({
@@ -209,10 +146,12 @@ const Reports = () => {
     setBarangayClearanceReportData(barangayClearanceChartData);
 
     // Process business clearance data
-    const filteredBusinessClearance = filterDataByDateAndResident(businessClearanceData);
+    const businessClearanceCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'Business Clearance'
+    );
     const businessClearanceCounts = {};
-    filteredBusinessClearance.forEach(item => {
-      const reason = item.request_reason || 'Not specified';
+    businessClearanceCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
       businessClearanceCounts[reason] = (businessClearanceCounts[reason] || 0) + 1;
     });
     const businessClearanceChartData = Object.keys(businessClearanceCounts).map(reason => ({
@@ -222,10 +161,12 @@ const Reports = () => {
     setBusinessClearanceReportData(businessClearanceChartData);
 
     // Process certificate of residency data
-    const filteredCertificateOfResidency = filterDataByDateAndResident(certificateOfResidencyData);
+    const certificateOfResidencyCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'Certificate of Residency'
+    );
     const certificateOfResidencyCounts = {};
-    filteredCertificateOfResidency.forEach(item => {
-      const reason = item.request_reason || 'Not specified';
+    certificateOfResidencyCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
       certificateOfResidencyCounts[reason] = (certificateOfResidencyCounts[reason] || 0) + 1;
     });
     const certificateOfResidencyChartData = Object.keys(certificateOfResidencyCounts).map(reason => ({
@@ -235,10 +176,12 @@ const Reports = () => {
     setCertificateOfResidencyReportData(certificateOfResidencyChartData);
 
     // Process permit to travel data
-    const filteredPermitToTravel = filterDataByDateAndResident(permitToTravelData);
+    const permitToTravelCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'Permit to Travel'
+    );
     const permitToTravelCounts = {};
-    filteredPermitToTravel.forEach(item => {
-      const reason = item.request_reason || 'Not specified';
+    permitToTravelCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
       permitToTravelCounts[reason] = (permitToTravelCounts[reason] || 0) + 1;
     });
     const permitToTravelChartData = Object.keys(permitToTravelCounts).map(reason => ({
@@ -247,12 +190,14 @@ const Reports = () => {
     }));
     setPermitToTravelReportData(permitToTravelChartData);
     
-    // Process oath job data
-    const filteredOathJob = filterDataByDateAndResident(oathJobData);
+    // Process oath job data - Note: Database has "Oath of Undertaking Job Seeker"
+    const oathJobCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'Oath of Undertaking Job Seeker'
+    );
     const oathJobCounts = {};
-    filteredOathJob.forEach(item => {
-      // Oath job doesn't have request_reason, so we'll use a default
-      oathJobCounts['Oath of Job Seeking'] = (oathJobCounts['Oath of Job Seeking'] || 0) + 1;
+    oathJobCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
+      oathJobCounts[reason] = (oathJobCounts[reason] || 0) + 1;
     });
     const oathJobChartData = Object.keys(oathJobCounts).map(reason => ({
       name: reason,
@@ -261,10 +206,12 @@ const Reports = () => {
     setOathJobReportData(oathJobChartData);
     
     // Process cash assistance data
-    const filteredCashAssistance = filterDataByDateAndResident(cashAssistanceData);
+    const cashAssistanceCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'Cash Assistance'
+    );
     const cashAssistanceCounts = {};
-    filteredCashAssistance.forEach(item => {
-      const reason = item.request_reason || 'Not specified';
+    cashAssistanceCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
       cashAssistanceCounts[reason] = (cashAssistanceCounts[reason] || 0) + 1;
     });
     const cashAssistanceChartData = Object.keys(cashAssistanceCounts).map(reason => ({
@@ -274,10 +221,12 @@ const Reports = () => {
     setCashAssistanceReportData(cashAssistanceChartData);
     
     // Process financial assistance data
-    const filteredFinancialAssistance = filterDataByDateAndResident(financialAssistanceData);
+    const financialAssistanceCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'Financial Assistance'
+    );
     const financialAssistanceCounts = {};
-    filteredFinancialAssistance.forEach(item => {
-      const reason = item.purpose || 'Not specified';
+    financialAssistanceCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
       financialAssistanceCounts[reason] = (financialAssistanceCounts[reason] || 0) + 1;
     });
     const financialAssistanceChartData = Object.keys(financialAssistanceCounts).map(reason => ({
@@ -286,11 +235,13 @@ const Reports = () => {
     }));
     setFinancialAssistanceReportData(financialAssistanceChartData);
     
-    // Process BHERT positive data
-    const filteredBhertPositive = filterDataByDateAndResident(bhertPositiveData);
+    // Process BHERT positive data - Note: Database has "BHERT Certificate Positive"
+    const bhertPositiveCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'BHERT Certificate Positive'
+    );
     const bhertPositiveCounts = {};
-    filteredBhertPositive.forEach(item => {
-      const reason = item.request_reason || 'Not specified';
+    bhertPositiveCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
       bhertPositiveCounts[reason] = (bhertPositiveCounts[reason] || 0) + 1;
     });
     const bhertPositiveChartData = Object.keys(bhertPositiveCounts).map(reason => ({
@@ -299,11 +250,13 @@ const Reports = () => {
     }));
     setBhertPositiveReportData(bhertPositiveChartData);
     
-    // Process BHERT normal data
-    const filteredBhertNormal = filterDataByDateAndResident(bhertNormalData);
+    // Process BHERT normal data - Note: Database has "BHERT Certificate Normal"
+    const bhertNormalCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'BHERT Certificate Normal'
+    );
     const bhertNormalCounts = {};
-    filteredBhertNormal.forEach(item => {
-      const reason = item.purpose || 'Not specified';
+    bhertNormalCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
       bhertNormalCounts[reason] = (bhertNormalCounts[reason] || 0) + 1;
     });
     const bhertNormalChartData = Object.keys(bhertNormalCounts).map(reason => ({
@@ -313,10 +266,12 @@ const Reports = () => {
     setBhertNormalReportData(bhertNormalChartData);
     
     // Process certificate of action data
-    const filteredCertificateOfAction = filterDataByDateAndResident(certificateOfActionData);
+    const certificateOfActionCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'Certificate of Action'
+    );
     const certificateOfActionCounts = {};
-    filteredCertificateOfAction.forEach(item => {
-      const reason = item.request_reason || 'Not specified';
+    certificateOfActionCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
       certificateOfActionCounts[reason] = (certificateOfActionCounts[reason] || 0) + 1;
     });
     const certificateOfActionChartData = Object.keys(certificateOfActionCounts).map(reason => ({
@@ -325,12 +280,14 @@ const Reports = () => {
     }));
     setCertificateOfActionReportData(certificateOfActionChartData);
     
-    // Process certificate of cohabitation data
-    const filteredCertificateOfCohabitation = filterDataByDateAndResident(certificateOfCohabitationData);
+    // Process certificate of cohabitation data - Note: Database has "Cohabitation"
+    const certificateOfCohabitationCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'Cohabitation'
+    );
     const certificateOfCohabitationCounts = {};
-    filteredCertificateOfCohabitation.forEach(item => {
-      // Certificate of cohabitation doesn't have request_reason, so we'll use a default
-      certificateOfCohabitationCounts['Certificate of Cohabitation'] = (certificateOfCohabitationCounts['Certificate of Cohabitation'] || 0) + 1;
+    certificateOfCohabitationCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
+      certificateOfCohabitationCounts[reason] = (certificateOfCohabitationCounts[reason] || 0) + 1;
     });
     const certificateOfCohabitationChartData = Object.keys(certificateOfCohabitationCounts).map(reason => ({
       name: reason,
@@ -338,12 +295,14 @@ const Reports = () => {
     }));
     setCertificateOfCohabitationReportData(certificateOfCohabitationChartData);
     
-    // Process solo parent data
-    const filteredSoloParent = filterDataByDateAndResident(soloParentData);
+    // Process solo parent data - Note: Database has "Solo Parent"
+    const soloParentCertificates = filteredCertificates.filter(cert => 
+      cert.certificate_type === 'Solo Parent'
+    );
     const soloParentCounts = {};
-    filteredSoloParent.forEach(item => {
-      // Solo parent doesn't have request_reason, so we'll use a default
-      soloParentCounts['Solo Parent Record'] = (soloParentCounts['Solo Parent Record'] || 0) + 1;
+    soloParentCertificates.forEach(item => {
+      const reason = item.reason || 'Not specified';
+      soloParentCounts[reason] = (soloParentCounts[reason] || 0) + 1;
     });
     const soloParentChartData = Object.keys(soloParentCounts).map(reason => ({
       name: reason,
@@ -352,44 +311,21 @@ const Reports = () => {
     setSoloParentReportData(soloParentChartData);
   };
 
-  const years = Array.from(new Set([
-    ...indigencyData.map(item => new Date(item.date_created || item.date_issued).getFullYear()),
-    ...barangayClearanceData.map(item => new Date(item.date_created || item.date_issued).getFullYear()),
-    ...businessClearanceData.map(item => new Date(item.date_created || item.date_issued).getFullYear()),
-    ...certificateOfResidencyData.map(item => new Date(item.date_created || item.date_issued).getFullYear()),
-    ...permitToTravelData.map(item => new Date(item.date_created || item.date_issued).getFullYear()),
-    ...oathJobData.map(item => new Date(item.date_created || item.date_issued).getFullYear()),
-    ...cashAssistanceData.map(item => new Date(item.date_created || item.date_issued).getFullYear()),
-    ...financialAssistanceData.map(item => new Date(item.date_created || item.date_issued).getFullYear()),
-    ...bhertPositiveData.map(item => new Date(item.date_created || item.date_issued).getFullYear()),
-    ...bhertNormalData.map(item => new Date(item.date_created || item.date_issued).getFullYear()),
-    ...certificateOfActionData.map(item => new Date(item.date_created || item.date_issued).getFullYear()),
-    ...certificateOfCohabitationData.map(item => new Date(item.date_created || item.date_issued).getFullYear()),
-    ...soloParentData.map(item => new Date(item.date_created || item.date_issued).getFullYear())
-  ]));
+  const years = Array.from(new Set(
+    certificates.map(item => new Date(item.date_issued).getFullYear())
+  ));
   
   if (!years.includes(currentYear)) years.push(currentYear);
 
   // Check if selected resident has any certificates at all
-  const hasAnyCertificates = selectedResident && (
-    filterDataByDateAndResident(indigencyData).length > 0 ||
-    filterDataByDateAndResident(barangayClearanceData).length > 0 ||
-    filterDataByDateAndResident(businessClearanceData).length > 0 ||
-    filterDataByDateAndResident(certificateOfResidencyData).length > 0 ||
-    filterDataByDateAndResident(permitToTravelData).length > 0 ||
-    filterDataByDateAndResident(oathJobData).length > 0 ||
-    filterDataByDateAndResident(cashAssistanceData).length > 0 ||
-    filterDataByDateAndResident(financialAssistanceData).length > 0 ||
-    filterDataByDateAndResident(bhertPositiveData).length > 0 ||
-    filterDataByDateAndResident(bhertNormalData).length > 0 ||
-    filterDataByDateAndResident(certificateOfActionData).length > 0 ||
-    filterDataByDateAndResident(certificateOfCohabitationData).length > 0 ||
-    filterDataByDateAndResident(soloParentData).length > 0
-  );
+  const hasAnyCertificates = selectedResident && 
+    filterDataByDateAndResident(certificates).length > 0;
 
   // Reusable component for certificate sections
-  const CertificateSection = ({ title, data, reportData }) => {
-    const filteredData = filterDataByDateAndResident(data);
+  const CertificateSection = ({ title, certificateType, reportData }) => {
+    const filteredData = filterDataByDateAndResident(certificates).filter(cert => 
+      cert.certificate_type === certificateType
+    );
     
     // Only render if there's data OR if no resident is selected
     if (filteredData.length === 0 && selectedResident) {
@@ -603,81 +539,81 @@ const Reports = () => {
       <Grid container spacing={3}>
         {/* Original certificate types */}
         <CertificateSection 
-          title="Indigency" 
-          data={indigencyData} 
+          title="Barangay Indigency" 
+          certificateType="Barangay Indigency"
           reportData={indigencyReportData} 
         />
         
         <CertificateSection 
           title="Barangay Clearance" 
-          data={barangayClearanceData} 
+          certificateType="Barangay Clearance"
           reportData={barangayClearanceReportData} 
         />
         
         <CertificateSection 
           title="Business Clearance" 
-          data={businessClearanceData} 
+          certificateType="Business Clearance"
           reportData={businessClearanceReportData} 
         />
         
         <CertificateSection 
           title="Certificate of Residency" 
-          data={certificateOfResidencyData} 
+          certificateType="Certificate of Residency"
           reportData={certificateOfResidencyReportData} 
         />
         
         <CertificateSection 
           title="Permit to Travel" 
-          data={permitToTravelData} 
+          certificateType="Permit to Travel"
           reportData={permitToTravelReportData} 
         />
         
         {/* Additional certificate types */}
         <CertificateSection 
-          title="Oath of Job Seeking" 
-          data={oathJobData} 
+          title="Oath of Undertaking Job Seeker" 
+          certificateType="Oath of Undertaking Job Seeker"
           reportData={oathJobReportData} 
         />
         
         <CertificateSection 
           title="Cash Assistance" 
-          data={cashAssistanceData} 
+          certificateType="Cash Assistance"
           reportData={cashAssistanceReportData} 
         />
         
         <CertificateSection 
           title="Financial Assistance" 
-          data={financialAssistanceData} 
+          certificateType="Financial Assistance"
           reportData={financialAssistanceReportData} 
         />
         
         <CertificateSection 
-          title="BHERT Certificate (Positive)" 
-          data={bhertPositiveData} 
+          title="BHERT Certificate Positive" 
+          certificateType="BHERT Certificate Positive"
           reportData={bhertPositiveReportData} 
         />
         
         <CertificateSection 
-          title="BHERT Certificate (Normal)" 
-          data={bhertNormalData} 
+          title="BHERT Certificate Normal" 
+          certificateType="BHERT Certificate Normal"
           reportData={bhertNormalReportData} 
         />
         
         <CertificateSection 
           title="Certificate of Action" 
-          data={certificateOfActionData} 
+          certificateType="Certificate of Action"
           reportData={certificateOfActionReportData} 
         />
         
         <CertificateSection 
-          title="Certificate of Cohabitation" 
-          data={certificateOfCohabitationData} 
+          title="Cohabitation" 
+          certificateType="Cohabitation"
           reportData={certificateOfCohabitationReportData} 
         />
         
         <CertificateSection 
-          title="Solo Parent Record" 
-          data={soloParentData} 
+          title="Solo Parent" 
+          certificateType="Solo Parent"
           reportData={soloParentReportData} 
         />
       </Grid>

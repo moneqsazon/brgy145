@@ -7,6 +7,7 @@ import CaloocanLogo from '../../assets/CaloocanLogo.png';
 import Logo145 from '../../assets/Logo145.png';
 import BagongPilipinas from '../../assets/BagongPilipinas.png';
 import WordName from '../../assets/WordName.png';
+import { useCertificateManager } from '../../hooks/useCertificateManager';
 
 // Import Material UI components
 import {
@@ -223,6 +224,13 @@ export default function BhertCertificatePositive() {
   const [zoomLevel, setZoomLevel] = useState(0.75); // Default zoom level
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+    // Add the certificate manager hook
+  const { 
+    saveCertificate, 
+    getValidityPeriod,
+    calculateExpirationDate 
+  } = useCertificateManager('BHERT Certificate Positive');
 
   const [formData, setFormData] = useState({
     resident_id: '',
@@ -450,10 +458,12 @@ export default function BhertCertificatePositive() {
     try {
       // Generate a transaction number for new certificates
       const transactionNumber = generateTransactionNumber();
+      const validityPeriod = getValidityPeriod('BHERT Certificate Positive');
       const updatedFormData = {
         ...formData,
         transaction_number: transactionNumber,
         date_created: new Date().toISOString(), // Add current timestamp
+        validity_period: validityPeriod, // Add validity period
       };
 
       const res = await fetch(`${apiBase}/bhert-certificate-positive`, {
@@ -463,13 +473,16 @@ export default function BhertCertificatePositive() {
       });
       if (!res.ok) throw new Error('Create failed');
       const created = await res.json();
-      const newRec = {
-        ...updatedFormData,
-        bhert_certificate_positive_id: created.bhert_certificate_positive_id,
+      const newRec = { 
+        ...updatedFormData, 
+        bhert_certificate_positive_id: created.bhert_certificate_positive_id
       };
 
       setRecords([newRec, ...records]);
       setSelectedRecord(newRec);
+
+      // Save to certificates table
+      await saveCertificate(newRec, true);
 
       // Store the new certificate data
       storeCertificateData(newRec);
@@ -484,17 +497,26 @@ export default function BhertCertificatePositive() {
 
   async function handleUpdate() {
     try {
+      const validityPeriod = getValidityPeriod('BHERT Certificate Positive');
+      const updatedFormData = {
+        ...formData,
+        validity_period: validityPeriod, // Add validity period
+      };
+
       const res = await fetch(`${apiBase}/bhert-certificate-positive/${editingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(formData)),
+        body: JSON.stringify(toServerPayload(updatedFormData)),
       });
       if (!res.ok) throw new Error('Update failed');
-      const updated = { ...formData, bhert_certificate_positive_id: editingId };
+      const updated = { ...updatedFormData, bhert_certificate_positive_id: editingId };
       setRecords(
         records.map((r) => (r.bhert_certificate_positive_id === editingId ? updated : r))
       );
       setSelectedRecord(updated);
+
+      // Save to certificates table
+      await saveCertificate(updated, false);
 
       // Store the updated certificate data
       storeCertificateData(updated);
@@ -506,6 +528,8 @@ export default function BhertCertificatePositive() {
       alert('Failed to update record');
     }
   }
+
+ 
 
   function handleEdit(record) {
     setFormData({ ...record });

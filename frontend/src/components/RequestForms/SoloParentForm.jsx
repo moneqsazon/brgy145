@@ -7,6 +7,7 @@ import CaloocanLogo from '../../assets/CaloocanLogo.png';
 import Logo145 from '../../assets/Logo145.png';
 import BagongPilipinas from '../../assets/BagongPilipinas.png';
 import WordName from '../../assets/WordName.png';
+import { useCertificateManager } from '../../hooks/useCertificateManager';
 
 // Import Material UI components
 import {
@@ -225,6 +226,13 @@ export default function SoloParentForm() {
   const [zoomLevel, setZoomLevel] = useState(0.75); // Default zoom level
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Add this after the imports and before the component function
+const { 
+  saveCertificate, 
+  getValidityPeriod,
+  calculateExpirationDate 
+} = useCertificateManager('Solo Parent');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -498,21 +506,27 @@ export default function SoloParentForm() {
   }, [display]);
 
   function toServerPayload(data) {
-    return {
-      resident_id: data.resident_id || null,
-      full_name: data.name,
-      age: data.age ? Number(data.age) : null,
-      address: data.address || null,
-      dob: data.birthday || null,
-      contact_no: data.contactNo || null,
-      residents_since_year: data.residentsSinceYear || null,
-      unwed_since_year: data.unwedSinceYear || null,
-      employment_status: data.employmentStatus || null,
-      employment_remarks: data.employmentRemarks || null,
-      date_issued: data.dateIssued,
-      transaction_number: data.transaction_number, // Include transaction number
-    };
+  const payload = {
+    full_name: data.name,
+    age: data.age ? Number(data.age) : null,
+    address: data.address || null,
+    dob: data.birthday || null,
+    contact_no: data.contactNo || null,
+    residents_since_year: data.residentsSinceYear || null,
+    unwed_since_year: data.unwedSinceYear || null,
+    employment_status: data.employmentStatus || null,
+    employment_remarks: data.employmentRemarks || null,
+    date_issued: data.dateIssued,
+    transaction_number: data.transaction_number,
+  };
+  
+  // Only add resident_id if it's a valid value
+  if (data.resident_id && data.resident_id !== '' && data.resident_id !== null) {
+    payload.resident_id = data.resident_id;
   }
+  
+  return payload;
+}
 
   function childrenToServerPayload() {
     return children.map((child) => ({
@@ -527,91 +541,148 @@ export default function SoloParentForm() {
     }));
   }
 
-  async function handleCreate() {
-    try {
-      // Generate a transaction number for new certificates
-      const transactionNumber = generateTransactionNumber();
-      const updatedFormData = {
-        ...formData,
-        transaction_number: transactionNumber,
-        dateCreated: new Date().toISOString(), // Add current timestamp
-      };
+ async function handleCreate() {
+  try {
+    // Generate a transaction number for new certificates
+    const transactionNumber = generateTransactionNumber();
+    const validityPeriod = getValidityPeriod('Solo Parent');
+    const updatedFormData = {
+      ...formData,
+      transaction_number: transactionNumber,
+      dateCreated: new Date().toISOString(), // Add current timestamp
+      validity_period: validityPeriod, // Add validity period
+    };
 
-      const res = await fetch(`${apiBase}/solo-parent-records`, {
+    const res = await fetch(`${apiBase}/solo-parent-records`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(toServerPayload(updatedFormData)),
+    });
+    if (!res.ok) throw new Error('Create failed');
+    const created = await res.json();
+    const soloParentId = created.solo_parent_id;
+
+    // Save children
+    if (children.length > 0) {
+      await fetch(`${apiBase}/solo-parent-children/${soloParentId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(updatedFormData)),
-      });
-      if (!res.ok) throw new Error('Create failed');
-      const created = await res.json();
-      const soloParentId = created.solo_parent_id;
-
-      // Save children
-      if (children.length > 0) {
-        await fetch(`${apiBase}/solo-parent-children/${soloParentId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(childrenToServerPayload()),
-        });
-      }
-
-      const newRec = {
-        ...updatedFormData,
-        id: soloParentId,
-      };
-
-      setRecords([newRec, ...records]);
-      setSelectedRecord(newRec);
-
-      // Store the new certificate data
-      storeCertificateData(newRec);
-
-      resetForm();
-      setActiveTab('records');
-    } catch (e) {
-      console.error(e);
-      alert('Failed to create record');
-    }
-  }
-
-  async function handleUpdate() {
-    try {
-      const res = await fetch(`${apiBase}/solo-parent-records/${editingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(formData)),
-      });
-      if (!res.ok) throw new Error('Update failed');
-
-      // Update children
-      await fetch(`${apiBase}/solo-parent-children/${editingId}`, {
-        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(childrenToServerPayload()),
       });
-
-      const updated = { ...formData, id: editingId };
-      setRecords(records.map((r) => (r.id === editingId ? updated : r)));
-      setSelectedRecord(updated);
-
-      // Store the updated certificate data
-      storeCertificateData(updated);
-
-      resetForm();
-      setActiveTab('records');
-    } catch (e) {
-      console.error(e);
-      alert('Failed to update record');
     }
+
+    const newRec = {
+      ...updatedFormData,
+      id: soloParentId,
+    };
+
+    setRecords([newRec, ...records]);
+    setSelectedRecord(newRec);
+
+    // --- START: FIX ---
+    // Save to certificates table using saveCertificate hook
+    await saveCertificate({
+      resident_id: newRec.resident_id,
+      full_name: newRec.name,
+      certificate_type: 'Solo Parent',
+      request_reason: 'Solo Parent', // Use request_reason field
+      reason: 'Solo Parent', // Also set reason field as backup
+      validity_period: newRec.validity_period,
+      date_issued: newRec.dateIssued,
+      reference_id: soloParentId, // Add reference to solo parent record
+    }, true);
+    // --- END: FIX ---
+
+    // Store the new certificate data (can still use newRec for local storage/QR)
+    storeCertificateData(newRec);
+
+    resetForm();
+    setActiveTab('records');
+  } catch (e) {
+    console.error(e);
+    alert('Failed to create record');
   }
+}
+
+async function handleUpdate() {
+  try {
+    // Get the current record to preserve resident_id if needed
+    const currentRecord = records.find(r => r.id === editingId);
+    
+    if (currentRecord && currentRecord.name === formData.name && !formData.resident_id) {
+      formData.resident_id = currentRecord.resident_id;
+    }
+    
+    const validityPeriod = getValidityPeriod('Solo Parent');
+    const updatedFormData = {
+      ...formData,
+      validity_period: validityPeriod, // Add validity period
+    };
+    
+    const res = await fetch(`${apiBase}/solo-parent-records/${editingId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(toServerPayload(updatedFormData)),
+    });
+    if (!res.ok) throw new Error('Update failed');
+
+    // Update children
+    await fetch(`${apiBase}/solo-parent-children/${editingId}`, {
+      method: 'DELETE',
+    });
+
+    if (children.length > 0) {
+      await fetch(`${apiBase}/solo-parent-children/${editingId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(childrenToServerPayload()),
+      });
+    }
+
+    const updated = { ...updatedFormData, id: editingId };
+    setRecords(records.map((r) => (r.id === editingId ? updated : r)));
+    setSelectedRecord(updated);
+
+    // --- START: FIX ---
+    // Save to certificates table using saveCertificate hook
+    await saveCertificate({
+      resident_id: updated.resident_id,
+      full_name: updated.name,
+      certificate_type: 'Solo Parent',
+      request_reason: 'Solo Parent', // Use request_reason field
+      reason: 'Solo Parent', // Also set reason field as backup
+      validity_period: updated.validity_period,
+      date_issued: updated.dateIssued,
+      reference_id: editingId, // Add reference to solo parent record
+    }, false);
+    // --- END: FIX ---
+
+    // Store the updated certificate data (can still use updated for local storage/QR)
+    storeCertificateData(updated);
+
+    await loadChildren(editingId);
+    
+    resetForm();
+    setActiveTab('records');
+  } catch (e) {
+    console.error(e);
+    alert('Failed to update record');
+  }
+}
 
   function handleEdit(record) {
-    setFormData({ ...record });
-    setEditingId(record.id);
-    setIsFormOpen(true);
-    setActiveTab('form');
-    loadChildren(record.id);
-  }
+  // Find the resident from the residents list to get the resident_id
+  const resident = residents.find((r) => r.full_name === record.name);
+  
+  setFormData({
+    ...record,
+    resident_id: resident ? resident.resident_id : record.resident_id
+  });
+  setEditingId(record.id);
+  setIsFormOpen(true);
+  setActiveTab('form');
+  loadChildren(record.id);
+}
 
   async function handleDelete(id) {
     if (!window.confirm('Delete this record?')) return;
@@ -1720,34 +1791,39 @@ export default function SoloParentForm() {
                 <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
                   <Stack spacing={3}>
                     <Autocomplete
-                      options={residents}
-                      getOptionLabel={(option) => option.full_name || ""}
-                      value={residents.find((r) => r.full_name === formData.name) || null}
-                      onChange={(e, nv) => {
-                        if (nv) {
-                          setFormData({
-                            ...formData,
-                            resident_id: nv.resident_id,
-                            name: nv.full_name,
-                            address: nv.address || '',
-                            birthday: nv.dob?.slice(0, 10) || '',
-                            age: calculateAge(nv.dob?.slice(0, 10)),
-                          });
-                        } else {
-                          setFormData({ ...formData, name: '' });
-                        }
-                      }}
-                      renderInput={(params) => (
-                        <TextField 
-                          {...params} 
-                          label="Full Name" 
-                          variant="outlined" 
-                          fullWidth 
-                          size="small"
-                          required
-                        />
-                      )}
-                    />
+  options={residents}
+  getOptionLabel={(option) => option.full_name || ""}
+  value={residents.find((r) => r.full_name === formData.name) || null}
+  onChange={(e, nv) => {
+    if (nv) {
+      setFormData({
+        ...formData,
+        resident_id: nv.resident_id,
+        name: nv.full_name,
+        address: nv.address || '',
+        birthday: nv.dob?.slice(0, 10) || '',
+        age: calculateAge(nv.dob?.slice(0, 10)),
+      });
+    } else {
+      // If no resident is selected, keep the current resident_id if it exists
+      setFormData({ 
+        ...formData, 
+        name: '',
+        // Don't reset resident_id to null if it already exists
+      });
+    }
+  }}
+  renderInput={(params) => (
+    <TextField 
+      {...params} 
+      label="Full Name" 
+      variant="outlined" 
+      fullWidth 
+      size="small"
+      required
+    />
+  )}
+/>
 
                     <TextField 
                       label="Address" 

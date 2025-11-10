@@ -5,6 +5,7 @@ import html2canvas from "html2canvas";
 
 import CaloocanLogo from "../../assets/CaloocanLogo.png";
 import Logo145 from "../../assets/Logo145.png";
+import { useCertificateManager } from '../../hooks/useCertificateManager';
 
 // MUI
 import {
@@ -198,6 +199,16 @@ export default function CertificateOfAction() {
   
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  const {
+  saveCertificate,
+  getValidityPeriod,
+  calculateExpirationDate
+} = useCertificateManager('Certificate of Action');
+
+  
+
+  
+
   const [formData, setFormData] = useState({
     certificate_of_action_id: "",
     resident_id: "",
@@ -337,10 +348,16 @@ export default function CertificateOfAction() {
     };
   }
 
-  async function handleCreate() {
+    async function handleCreate() {
     try {
       const tx = generateTransactionNumber();
-      const updated = { ...formData, transaction_number: tx, date_created: new Date().toISOString() };
+      const validityPeriod = getValidityPeriod('Certificate of Action');
+      const updated = { 
+        ...formData, 
+        transaction_number: tx, 
+        date_created: new Date().toISOString(),
+        validity_period: validityPeriod, // Add validity period
+      };
       const res = await fetch(`${apiBase}/certificate-of-action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -351,6 +368,13 @@ export default function CertificateOfAction() {
       const newRec = { ...updated, certificate_of_action_id: created.certificate_of_action_id };
       setRecords([newRec, ...records]);
       setSelectedRecord(newRec);
+      
+      // Save to certificates table, mapping complainant_name to full_name
+      await saveCertificate({
+        ...newRec,
+        full_name: newRec.complainant_name, // Map complainant_name to full_name for the central table
+      }, true);
+      
       storeCertificateData(newRec);
       resetForm();
       setActiveTab("records");
@@ -360,18 +384,30 @@ export default function CertificateOfAction() {
     }
   }
 
-  async function handleUpdate() {
+    async function handleUpdate() {
     try {
+      const validityPeriod = getValidityPeriod('Certificate of Action');
+      const updated = { 
+        ...formData, 
+        validity_period: validityPeriod, // Add validity period
+      };
       const res = await fetch(`${apiBase}/certificate-of-action/${editingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toServerPayload(formData)),
+        body: JSON.stringify(toServerPayload(updated)),
       });
       if (!res.ok) throw new Error("Update failed");
-      const updated = { ...formData, certificate_of_action_id: editingId };
-      setRecords(records.map((r) => (r.certificate_of_action_id === editingId ? updated : r)));
-      setSelectedRecord(updated);
-      storeCertificateData(updated);
+      const updatedRec = { ...updated, certificate_of_action_id: editingId };
+      setRecords(records.map((r) => (r.certificate_of_action_id === editingId ? updatedRec : r)));
+      setSelectedRecord(updatedRec);
+      
+      // Save to certificates table, mapping complainant_name to full_name
+      await saveCertificate({
+        ...updatedRec,
+        full_name: updatedRec.complainant_name, // Map complainant_name to full_name for the central table
+      }, false);
+      
+      storeCertificateData(updatedRec);
       resetForm();
       setActiveTab("records");
     } catch (e) {

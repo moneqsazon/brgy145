@@ -7,6 +7,7 @@ import CaloocanLogo from '../../assets/CaloocanLogo.png';
 import Logo145 from '../../assets/Logo145.png';
 import BagongPilipinas from '../../assets/BagongPilipinas.png';
 import WordName from '../../assets/WordName.png';
+import { useCertificateManager } from '../../hooks/useCertificateManager';
 
 // Import Material UI components
 import {
@@ -222,6 +223,8 @@ export default function BarangayClearance() {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(0.75); // Default zoom level
 
+  
+
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [formData, setFormData] = useState({
@@ -247,6 +250,13 @@ export default function BarangayClearance() {
     'Divorced',
     'Separated',
   ];
+
+    // Add the certificate manager hook
+  const { 
+    saveCertificate, 
+    getValidityPeriod,
+    calculateExpirationDate 
+  } = useCertificateManager('Barangay Clearance');
 
   // Helper function to format date consistently without timezone issues
   function formatDateDisplay(dateString) {
@@ -503,6 +513,7 @@ export default function BarangayClearance() {
     };
   }
 
+  // Modify handleCreate function
   async function handleCreate() {
     try {
       // Generate a transaction number for new certificates
@@ -511,6 +522,7 @@ export default function BarangayClearance() {
         ...formData,
         transaction_number: transactionNumber,
         date_created: new Date().toISOString(), // Add current timestamp
+        validity_period: getValidityPeriod('Barangay Clearance'), // Add validity period
       };
 
       const res = await fetch(`${apiBase}/barangay-clearance`, {
@@ -520,10 +532,16 @@ export default function BarangayClearance() {
       });
       if (!res.ok) throw new Error('Create failed');
       const created = await res.json();
-      const newRec = { ...updatedFormData, barangay_clearance_id: created.barangay_clearance_id };
+      const newRec = { 
+        ...updatedFormData, 
+        barangay_clearance_id: created.barangay_clearance_id 
+      };
 
       setRecords([newRec, ...records]);
       setSelectedRecord(newRec);
+
+      // Save to certificates table
+      await saveCertificate(newRec, true);
 
       // Store the new certificate data
       storeCertificateData(newRec);
@@ -536,19 +554,31 @@ export default function BarangayClearance() {
     }
   }
 
+  // Modify handleUpdate function
   async function handleUpdate() {
     try {
+      const updatedFormData = {
+        ...formData,
+        validity_period: getValidityPeriod('Barangay Clearance'), // Add validity period
+      };
+
       const res = await fetch(`${apiBase}/barangay-clearance/${editingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(formData)),
+        body: JSON.stringify(toServerPayload(updatedFormData)),
       });
       if (!res.ok) throw new Error('Update failed');
-      const updated = { ...formData, barangay_clearance_id: editingId };
+      const updated = { 
+        ...updatedFormData, 
+        barangay_clearance_id: editingId 
+      };
       setRecords(
         records.map((r) => (r.barangay_clearance_id === editingId ? updated : r))
       );
       setSelectedRecord(updated);
+
+      // Save to certificates table
+      await saveCertificate(updated, false);
 
       // Store the updated certificate data
       storeCertificateData(updated);
@@ -561,13 +591,7 @@ export default function BarangayClearance() {
     }
   }
 
-  function handleEdit(record) {
-    setFormData({ ...record });
-    setEditingId(record.barangay_clearance_id);
-    setIsFormOpen(true);
-    setActiveTab('form');
-  }
-
+  // Keep handleDelete as is (no changes needed for the certificates table)
   async function handleDelete(id) {
     if (!window.confirm('Delete this record?')) return;
     try {

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 import CaloocanLogo from '../../assets/CaloocanLogo.png';
 import Logo145 from '../../assets/Logo145.png';
+import { useCertificateManager } from '../../hooks/useCertificateManager';
 
 // MUI
 import {
@@ -223,6 +224,12 @@ export default function CashAssistance() {
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  const { 
+  saveCertificate, 
+  getValidityPeriod,
+  calculateExpirationDate 
+} = useCertificateManager('Cash Assistance');
+
   const [formData, setFormData] = useState({
     cash_assistance_id: '',
     resident_id: '',
@@ -390,19 +397,34 @@ export default function CashAssistance() {
 
   async function handleCreate() {
     try {
-      const tx = generateTransactionNumber();
-      const updated = { ...formData, transaction_number: tx, date_created: new Date().toISOString() };
+      // Generate a transaction number for new certificates
+      const transactionNumber = generateTransactionNumber();
+      const validityPeriod = getValidityPeriod('Cash Assistance');
+      const updatedFormData = {
+        ...formData,
+        transaction_number: transactionNumber,
+        date_created: new Date().toISOString(), // Add current timestamp
+        validity_period: validityPeriod, // Add validity period
+      };
+
       const res = await fetch(`${apiBase}/cash-assistance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(updated)),
+        body: JSON.stringify(toServerPayload(updatedFormData)),
       });
       if (!res.ok) throw new Error('Create failed');
       const created = await res.json();
-      const newRec = { ...updated, cash_assistance_id: created.cash_assistance_id };
+      const newRec = { ...updatedFormData, cash_assistance_id: created.cash_assistance_id };
+
       setRecords([newRec, ...records]);
       setSelectedRecord(newRec);
+
+      // Save to certificates table
+      await saveCertificate(newRec, true);
+
+      // Store the new certificate data
       storeCertificateData(newRec);
+
       resetForm();
       setActiveTab('records');
     } catch (e) {
@@ -411,18 +433,33 @@ export default function CashAssistance() {
     }
   }
 
+
   async function handleUpdate() {
     try {
+      const validityPeriod = getValidityPeriod('Cash Assistance');
+      const updatedFormData = {
+        ...formData,
+        validity_period: validityPeriod, // Add validity period
+      };
+
       const res = await fetch(`${apiBase}/cash-assistance/${editingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(formData)),
+        body: JSON.stringify(toServerPayload(updatedFormData)),
       });
       if (!res.ok) throw new Error('Update failed');
-      const updated = { ...formData, cash_assistance_id: editingId };
-      setRecords(records.map((r) => (r.cash_assistance_id === editingId ? updated : r)));
+      const updated = { ...updatedFormData, cash_assistance_id: editingId };
+      setRecords(
+        records.map((r) => (r.cash_assistance_id === editingId ? updated : r))
+      );
       setSelectedRecord(updated);
+
+      // Save to certificates table
+      await saveCertificate(updated, false);
+
+      // Store the updated certificate data
       storeCertificateData(updated);
+
       resetForm();
       setActiveTab('records');
     } catch (e) {

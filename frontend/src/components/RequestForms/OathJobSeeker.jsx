@@ -6,6 +6,10 @@ import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+import { useCertificateManager } from '../../hooks/useCertificateManager';
+
+
+
 // Import Material UI components at the top of your file
 import {
   Container,
@@ -222,13 +226,22 @@ export default function OathJobSeeker() {
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  // Add this after the imports and before the component function
+const { 
+  saveCertificate, 
+  getValidityPeriod,
+  calculateExpirationDate 
+} = useCertificateManager('Oath of Undertaking Job Seeker');
+
+
   const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    dob: '',
-    age: '',
-    dateIssued: new Date().toISOString().split('T')[0],
-  });
+  resident_id: null,  // Add this field
+  name: '',
+  address: '',
+  dob: '',
+  age: '',
+  dateIssued: new Date().toISOString().split('T')[0],
+});
 
   // ---------- HELPERS ----------
   function formatDate(dateString) {
@@ -422,101 +435,144 @@ export default function OathJobSeeker() {
   }, []);
   
   async function loadRecords() {
-    try {
-      const res = await fetch(`${apiBase}/oath-job`);
-      const data = await res.json();
-      setRecords(
-        Array.isArray(data)
-          ? data.map((r) => ({
-              id: r.id,
-              name: r.full_name,
-              address: r.address,
-              dob: r.dob?.slice(0, 10) || '',
-              age: String(r.age ?? ''),
-              dateIssued: r.date_issued?.slice(0, 10) || '',
-              dateCreated: r.date_created || null,
-              transaction_number: r.transaction_number || generateTransactionNumber(),
-            }))
-          : []
-      );
-    } catch (e) {
-      console.error('loadRecords error', e);
-    }
+  try {
+    const res = await fetch(`${apiBase}/oath-job`);
+    const data = await res.json();
+    setRecords(
+      Array.isArray(data)
+        ? data.map((r) => ({
+            id: r.id,
+            // Make sure to include resident_id from the API response
+            resident_id: r.resident_id || null,
+            name: r.full_name,
+            address: r.address,
+            dob: r.dob?.slice(0, 10) || '',
+            age: String(r.age ?? ''),
+            dateIssued: r.date_issued?.slice(0, 10) || '',
+            dateCreated: r.date_created || null,
+            transaction_number: r.transaction_number || generateTransactionNumber(),
+          }))
+        : []
+    );
+  } catch (e) {
+    console.error('loadRecords error', e);
   }
+}
 
   useEffect(() => {
     loadRecords();
   }, []);
 
   function toServerPayload(data) {
-    return {
-      resident_id: data.resident_id || null,
-      full_name: data.name,
-      age: data.age ? Number(data.age) : null,
-      address: data.address || null,
-      date_issued: data.dateIssued,
-      transaction_number: data.transaction_number,
+  return {
+    resident_id: data.resident_id || null,  // This should already be correct
+    full_name: data.name,
+    age: data.age ? Number(data.age) : null,
+    address: data.address || null,
+    date_issued: data.dateIssued,
+    transaction_number: data.transaction_number,
+  };
+}
+
+  // Update the handleCreate function
+async function handleCreate() {
+  try {
+    // Generate a transaction number for new certificates
+    const transactionNumber = generateTransactionNumber();
+    const validityPeriod = getValidityPeriod('Oath of Undertaking Job Seeker');
+    const updatedFormData = {
+      ...formData,
+      transaction_number: transactionNumber,
+      dateCreated: new Date().toISOString(), // Add current timestamp
+      validity_period: validityPeriod, // Add validity period
     };
+
+    const res = await fetch(`${apiBase}/oath-job`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(toServerPayload(updatedFormData)),
+    });
+    if (!res.ok) throw new Error('Create failed');
+    const created = await res.json();
+    const newRec = {
+      ...updatedFormData,
+      id: created.id,
+    };
+    setRecords([newRec, ...records]);
+    setSelectedRecord(newRec);
+    storeCertificateData(newRec);
+    
+    // Save to certificates table using the hook
+    await saveCertificate({
+      resident_id: newRec.resident_id,
+      full_name: newRec.name,
+      certificate_type: 'Oath of Undertaking Job Seeker',
+      request_reason: 'Job Application', // Explicitly set the reason
+      validity_period: newRec.validity_period,
+      date_issued: newRec.dateIssued,
+      reference_id: created.id, // Add reference to the oath record
+    }, true);
+    
+    resetForm();
+    setActiveTab('records');
+  } catch (e) {
+    console.error(e);
+    alert('Failed to create record');
   }
+}
 
-  async function handleCreate() {
-    try {
-      // Generate a transaction number for new certificates
-      const transactionNumber = generateTransactionNumber();
-      const updatedFormData = {
-        ...formData,
-        transaction_number: transactionNumber,
-        dateCreated: new Date().toISOString(), // Add current timestamp
-      };
-
-      const res = await fetch(`${apiBase}/oath-job`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(updatedFormData)),
-      });
-      if (!res.ok) throw new Error('Create failed');
-      const created = await res.json();
-      const newRec = {
-        ...updatedFormData,
-        id: created.id,
-      };
-      setRecords([newRec, ...records]);
-      setSelectedRecord(newRec);
-      storeCertificateData(newRec);
-      resetForm();
-      setActiveTab('records');
-    } catch (e) {
-      console.error('handleCreate error', e);
-      alert('Failed to create record');
-    }
+// Update the handleUpdate function
+async function handleUpdate() {
+  try {
+    const validityPeriod = getValidityPeriod('Oath of Undertaking Job Seeker');
+    const updatedFormData = {
+      ...formData,
+      validity_period: validityPeriod, // Add validity period
+    };
+    
+    const res = await fetch(`${apiBase}/oath-job/${editingId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(toServerPayload(updatedFormData)),
+    });
+    if (!res.ok) throw new Error('Update failed');
+    const updatedRec = { ...updatedFormData, id: editingId };
+    setRecords(records.map((r) => (r.id === editingId ? updatedRec : r)));
+    setSelectedRecord(updatedRec);
+    storeCertificateData(updatedRec);
+    
+    // Save to certificates table using the hook
+    await saveCertificate({
+      resident_id: updatedRec.resident_id,
+      full_name: updatedRec.name,
+      certificate_type: 'Oath of Undertaking Job Seeker',
+      request_reason: 'Job Application', // Explicitly set the reason
+      validity_period: updatedRec.validity_period,
+      date_issued: updatedRec.dateIssued,
+      reference_id: editingId, // Add reference to the oath record
+    }, false);
+    
+    resetForm();
+    setActiveTab('records');
+  } catch (e) {
+    console.error(e);
+    alert('Failed to update record');
   }
-
-  async function handleUpdate() {
-    try {
-      const res = await fetch(`${apiBase}/oath-job/${editingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(formData)),
-      });
-      if (!res.ok) throw new Error('Update failed');
-      const updated = { ...formData, id: editingId };
-      setRecords(records.map((r) => (r.id === editingId ? updated : r)));
-      setSelectedRecord(updated);
-      storeCertificateData(updated);
-      resetForm();
-      setActiveTab('records');
-    } catch (e) {
-      console.error('handleUpdate error', e);
-      alert('Failed to update record');
-    }
-  }
-
+}
   function handleEdit(record) {
-    setFormData({ ...record });
-    setEditingId(record.id);
-    setIsFormOpen(true);
-    setActiveTab('form');
-  }
+  setFormData({ 
+    ...record,
+    // Make sure we're preserving the resident_id
+    resident_id: record.resident_id || null,
+    // Ensure date fields are properly formatted
+    dob: record.dob || '',
+    age: record.age || '',
+    dateIssued: record.dateIssued || new Date().toISOString().split('T')[0],
+  });
+  setEditingId(record.id);
+  setIsFormOpen(true);
+  setActiveTab('form');
+}
 
   async function handleDelete(id) {
     if (!window.confirm('Delete this record?')) return;
@@ -550,17 +606,18 @@ export default function OathJobSeeker() {
   }
 
   function resetForm() {
-    setFormData({
-      name: '',
-      address: '',
-      dob: '',
-      age: '',
-      dateIssued: new Date().toISOString().split('T')[0],
-    });
-    setEditingId(null);
-    setIsFormOpen(false);
-    setSelectedRecord(null);
-  }
+  setFormData({
+    resident_id: null, // Add this field
+    name: '',
+    address: '',
+    dob: '',
+    age: '',
+    dateIssued: new Date().toISOString().split('T')[0],
+  });
+  setEditingId(null);
+  setIsFormOpen(false);
+  setSelectedRecord(null);
+}
 
   function handleSubmit() {
     if (editingId) handleUpdate();
@@ -1489,44 +1546,43 @@ export default function OathJobSeeker() {
                 <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
                   <Stack spacing={3}>
                     <Autocomplete
-                      options={residents}
-                      getOptionLabel={(option) => option.full_name || ''}
-                      value={
-                        residents.find((r) => r.full_name === formData.name) ||
-                        null
-                      }
-                      onChange={(e, value) => {
-                        if (value) {
-                          setFormData({
-                            ...formData,
-                            resident_id: value.id,
-                            name: value.full_name,
-                            address: value.address || '',
-                            dob: value.dob?.slice(0, 10) || '',
-                            age: calculateAge(value.dob?.slice(0, 10)),
-                          });
-                        } else {
-                          setFormData({
-                            ...formData,
-                            resident_id: null,
-                            name: '',
-                            address: '',
-                            dob: '',
-                            age: '',
-                          });
-                        }
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Full Name *"
-                          variant="outlined"
-                          size="small"
-                          fullWidth
-                          required
-                        />
-                      )}
-                    />
+  options={residents}
+  getOptionLabel={(option) => option.full_name || ''}
+  // Use resident_id instead of name for the value
+  value={residents.find((r) => r.resident_id === formData.resident_id) || null}
+  onChange={(e, value) => {
+    console.log('Selected resident object:', value);
+    if (value) {
+      setFormData({
+        ...formData,
+        resident_id: value.resident_id, // Use resident_id instead of id
+        name: value.full_name,
+        address: value.address || '',
+        dob: value.dob?.slice(0, 10) || '',
+        age: calculateAge(value.dob?.slice(0, 10)),
+      });
+    } else {
+      setFormData({
+        ...formData,
+        resident_id: null,
+        name: '',
+        address: '',
+        dob: '',
+        age: '',
+      });
+    }
+  }}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      label="Full Name *"
+      variant="outlined"
+      size="small"
+      fullWidth
+      required
+    />
+  )}
+/>
 
                     <TextField
                       label="Address *"

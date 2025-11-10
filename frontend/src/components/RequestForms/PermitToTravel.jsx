@@ -7,6 +7,7 @@ import CaloocanLogo from '../../assets/CaloocanLogo.png';
 import Logo145 from '../../assets/Logo145.png';
 import BagongPilipinas from '../../assets/BagongPilipinas.png';
 import WordName from '../../assets/WordName.png';
+import { useCertificateManager } from '../../hooks/useCertificateManager';
 
 // Import Material UI components
 import {
@@ -223,6 +224,13 @@ export default function PermitToTravel() {
   const [zoomLevel, setZoomLevel] = useState(0.75); // Default zoom level
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Add this after the imports and before the component function
+const { 
+  saveCertificate, 
+  getValidityPeriod,
+  calculateExpirationDate 
+} = useCertificateManager('Permit to Travel');
 
   const [formData, setFormData] = useState({
     resident_id: '',
@@ -503,66 +511,79 @@ export default function PermitToTravel() {
     };
   }
 
-  async function handleCreate() {
-    try {
-      // Generate a transaction number for new certificates
-      const transactionNumber = generateTransactionNumber();
-      const updatedFormData = {
-        ...formData,
-        transaction_number: transactionNumber,
-        date_created: new Date().toISOString(), // Add current timestamp
-      };
+  // Update the handleCreate function
+async function handleCreate() {
+  try {
+    // Generate a transaction number for new certificates
+    const transactionNumber = generateTransactionNumber();
+    const validityPeriod = getValidityPeriod('Permit to Travel');
+    const updatedFormData = {
+      ...formData,
+      transaction_number: transactionNumber,
+      date_created: new Date().toISOString(), // Add current timestamp
+      validity_period: validityPeriod, // Add validity period
+    };
 
-      const res = await fetch(`${apiBase}/permit-to-travel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(updatedFormData)),
-      });
-      if (!res.ok) throw new Error('Create failed');
-      const created = await res.json();
-      const newRec = {
-        ...updatedFormData,
-        permit_to_travel_id: created.permit_to_travel_id,
-      };
+    const res = await fetch(`${apiBase}/permit-to-travel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(toServerPayload(updatedFormData)),
+    });
+    if (!res.ok) throw new Error('Create failed');
+    const created = await res.json();
+    const newRec = { ...updatedFormData, permit_to_travel_id: created.permit_to_travel_id };
 
-      setRecords([newRec, ...records]);
-      setSelectedRecord(newRec);
+    setRecords([newRec, ...records]);
+    setSelectedRecord(newRec);
 
-      // Store the new certificate data
-      storeCertificateData(newRec);
+    // Save to certificates table
+    await saveCertificate(newRec, true);
 
-      resetForm();
-      setActiveTab('records');
-    } catch (e) {
-      console.error(e);
-      alert('Failed to create record');
-    }
+    // Store the new certificate data
+    storeCertificateData(newRec);
+
+    resetForm();
+    setActiveTab('records');
+  } catch (e) {
+    console.error(e);
+    alert('Failed to create record');
   }
+}
 
-  async function handleUpdate() {
-    try {
-      const res = await fetch(`${apiBase}/permit-to-travel/${editingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(formData)),
-      });
-      if (!res.ok) throw new Error('Update failed');
-      const updated = { ...formData, permit_to_travel_id: editingId };
-      setRecords(
-        records.map((r) => (r.permit_to_travel_id === editingId ? updated : r))
-      );
-      setSelectedRecord(updated);
+// Update the handleUpdate function
+async function handleUpdate() {
+  try {
+    const validityPeriod = getValidityPeriod('Permit to Travel');
+    const updatedFormData = {
+      ...formData,
+      validity_period: validityPeriod, // Add validity period
+    };
 
-      // Store the updated certificate data
-      storeCertificateData(updated);
+    const res = await fetch(`${apiBase}/permit-to-travel/${editingId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(toServerPayload(updatedFormData)),
+    });
+    if (!res.ok) throw new Error('Update failed');
+    const updated = { ...updatedFormData, permit_to_travel_id: editingId };
+    setRecords(
+      records.map((r) => (r.permit_to_travel_id === editingId ? updated : r))
+    );
+    setSelectedRecord(updated);
 
-      resetForm();
-      setActiveTab('records');
-    } catch (e) {
-      console.error(e);
-      alert('Failed to update record');
-    }
+    // Save to certificates table
+    await saveCertificate(updated, false);
+
+    // Store the updated certificate data
+    storeCertificateData(updated);
+
+    resetForm();
+    setActiveTab('records');
+  } catch (e) {
+    console.error(e);
+    alert('Failed to update record');
   }
+}
 
   function handleEdit(record) {
     setFormData({ ...record });

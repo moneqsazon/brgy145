@@ -7,6 +7,7 @@ import CaloocanLogo from '../../assets/CaloocanLogo.png';
 import Logo145 from '../../assets/Logo145.png';
 import BagongPilipinas from '../../assets/BagongPilipinas.png';
 import WordName from '../../assets/WordName.png';
+import { useCertificateManager } from '../../hooks/useCertificateManager';
 
 // Import Material UI components
 import {
@@ -223,6 +224,12 @@ export default function BhertCertificateNormal() {
   const [zoomLevel, setZoomLevel] = useState(0.75); // Default zoom level
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+   const { 
+    saveCertificate, 
+    getValidityPeriod,
+    calculateExpirationDate 
+  } = useCertificateManager('BHERT Certificate Normal');
 
   const [formData, setFormData] = useState({
     resident_id: '',
@@ -451,10 +458,12 @@ export default function BhertCertificateNormal() {
     try {
       // Generate a transaction number for new certificates
       const transactionNumber = generateTransactionNumber();
+      const validityPeriod = getValidityPeriod('BHERT Certificate Normal');
       const updatedFormData = {
         ...formData,
         transaction_number: transactionNumber,
         date_created: new Date().toISOString(), // Add current timestamp
+        validity_period: validityPeriod, // Add validity period
       };
 
       const res = await fetch(`${apiBase}/bhert-certificate-normal`, {
@@ -464,13 +473,13 @@ export default function BhertCertificateNormal() {
       });
       if (!res.ok) throw new Error('Create failed');
       const created = await res.json();
-      const newRec = {
-        ...updatedFormData,
-        bhert_certificate_normal_id: created.bhert_certificate_normal_id,
-      };
+      const newRec = { ...updatedFormData, bhert_certificate_normal_id: created.bhert_certificate_normal_id };
 
       setRecords([newRec, ...records]);
       setSelectedRecord(newRec);
+
+      // Save to certificates table
+      await saveCertificate(newRec, true);
 
       // Store the new certificate data
       storeCertificateData(newRec);
@@ -485,17 +494,26 @@ export default function BhertCertificateNormal() {
 
   async function handleUpdate() {
     try {
+      const validityPeriod = getValidityPeriod('BHERT Certificate Normal');
+      const updatedFormData = {
+        ...formData,
+        validity_period: validityPeriod, // Add validity period
+      };
+
       const res = await fetch(`${apiBase}/bhert-certificate-normal/${editingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toServerPayload(formData)),
+        body: JSON.stringify(toServerPayload(updatedFormData)),
       });
       if (!res.ok) throw new Error('Update failed');
-      const updated = { ...formData, bhert_certificate_normal_id: editingId };
+      const updated = { ...updatedFormData, bhert_certificate_normal_id: editingId };
       setRecords(
         records.map((r) => (r.bhert_certificate_normal_id === editingId ? updated : r))
       );
       setSelectedRecord(updated);
+
+      // Save to certificates table
+      await saveCertificate(updated, false);
 
       // Store the updated certificate data
       storeCertificateData(updated);

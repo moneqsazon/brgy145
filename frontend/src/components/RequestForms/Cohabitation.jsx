@@ -6,6 +6,7 @@ import html2canvas from "html2canvas";
 import CaloocanLogo from "../../assets/CaloocanLogo.png";
 import Logo145 from "../../assets/Logo145.png";
 import BagongPilipinas from "../../assets/BagongPilipinas.png";
+import { useCertificateManager } from '../../hooks/useCertificateManager';
 
 // MUI
 import {
@@ -215,6 +216,13 @@ export default function Cohabitation() {
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  // Add this after the imports and before the component function
+const { 
+  saveCertificate, 
+  getValidityPeriod,
+  calculateExpirationDate 
+} = useCertificateManager('Cohabitation');
+
   const [formData, setFormData] = useState({
     certificate_of_cohabitation_id: "",
     resident1_id: "",
@@ -419,48 +427,89 @@ export default function Cohabitation() {
     };
   }
 
-  async function handleCreate() {
-    try {
-      const tx = generateTransactionNumber();
-      const updated = { ...formData, transaction_number: tx, date_created: new Date().toISOString() };
-      const res = await fetch(`${apiBase}/certificate-of-cohabitation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toServerPayload(updated)),
-      });
-      if (!res.ok) throw new Error("Create failed");
-      const created = await res.json();
-      const newRec = { ...updated, certificate_of_cohabitation_id: created.certificate_of_cohabitation_id };
-      setRecords([newRec, ...records]);
-      setSelectedRecord(newRec);
-      storeLocalDraft(newRec);
-      resetForm();
-      setActiveTab("records");
-    } catch (e) {
-      console.error(e);
-      alert("Failed to create record");
-    }
-  }
+ // Update the handleCreate function in Cohabitation.jsx
+async function handleCreate() {
+  try {
+    const tx = generateTransactionNumber();
+    const validityPeriod = getValidityPeriod('Cohabitation');
+    const updated = { 
+      ...formData, 
+      transaction_number: tx, 
+      date_created: new Date().toISOString(),
+      validity_period: validityPeriod,
+    };
+    const res = await fetch(`${apiBase}/certificate-of-cohabitation`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(toServerPayload(updated)),
+    });
+    if (!res.ok) throw new Error("Create failed");
+    const created = await res.json();
+    const newRec = { ...updated, certificate_of_cohabitation_id: created.certificate_of_cohabitation_id };
+    setRecords([newRec, ...records]);
+    setSelectedRecord(newRec);
 
-  async function handleUpdate() {
-    try {
-      const res = await fetch(`${apiBase}/certificate-of-cohabitation/${editingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toServerPayload(formData)),
-      });
-      if (!res.ok) throw new Error("Update failed");
-      const updated = { ...formData, certificate_of_cohabitation_id: editingId };
-      setRecords(records.map((r) => (r.certificate_of_cohabitation_id === editingId ? updated : r)));
-      setSelectedRecord(updated);
-      storeLocalDraft(updated);
-      resetForm();
-      setActiveTab("records");
-    } catch (e) {
-      console.error(e);
-      alert("Failed to update record");
-    }
+    // --- Save to certificates table ---
+    const combinedFullName = `${newRec.full_name1} & ${newRec.full_name2}`;
+    const reason = newRec.request_reason || "Cohabitation";
+
+    // Save just ONE certificate record with the first person's resident ID
+    await saveCertificate({
+      full_name: combinedFullName,
+      resident_id: newRec.resident1_id, // Just use the first person's ID
+      request_reason: reason,
+      validity_period: validityPeriod,
+      date_issued: newRec.date_issued,
+    }, true);
+
+    storeLocalDraft(newRec);
+    resetForm();
+    setActiveTab("records");
+  } catch (e) {
+    console.error(e);
+    alert("Failed to create record");
   }
+}
+
+// Update the handleUpdate function in Cohabitation.jsx
+async function handleUpdate() {
+  try {
+    const validityPeriod = getValidityPeriod('Cohabitation');
+    const updated = { 
+      ...formData, 
+      validity_period: validityPeriod,
+    };
+    const res = await fetch(`${apiBase}/certificate-of-cohabitation/${editingId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(toServerPayload(updated)),
+    });
+    if (!res.ok) throw new Error("Update failed");
+    const updatedRec = { ...updated, certificate_of_cohabitation_id: editingId };
+    setRecords(records.map((r) => (r.certificate_of_cohabitation_id === editingId ? updatedRec : r)));
+    setSelectedRecord(updatedRec);
+
+    // --- Save to certificates table ---
+    const combinedFullName = `${updatedRec.full_name1} & ${updatedRec.full_name2}`;
+    const reason = updatedRec.request_reason || "Cohabitation";
+
+    // Update just ONE certificate record with the first person's resident ID
+    await saveCertificate({
+      full_name: combinedFullName,
+      resident_id: updatedRec.resident1_id, // Just use the first person's ID
+      request_reason: reason,
+      validity_period: validityPeriod,
+      date_issued: updatedRec.date_issued,
+    }, false);
+
+    storeLocalDraft(updatedRec);
+    resetForm();
+    setActiveTab("records");
+  } catch (e) {
+    console.error(e);
+    alert("Failed to update record");
+  }
+}
 
   function handleEdit(record) {
     setFormData({

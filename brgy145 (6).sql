@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 10, 2025 at 09:11 AM
+-- Generation Time: Dec 10, 2025 at 10:28 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -214,7 +214,8 @@ INSERT INTO `certificates` (`certificate_id`, `resident_id`, `full_name`, `certi
 (48, 7, 'Hanna N. Sarabia', 'Solo Parent', 'Solo Parent', '6 months', '2025-11-09', '2025-11-10 07:18:38'),
 (49, 8, 'Trixie Ann G. Morales', 'Oath of Undertaking Job Seeker', 'Job Application', '1 year', '2025-11-08', '2025-11-10 07:35:18'),
 (50, 7, 'Hanna N. Sarabia', 'Oath of Undertaking Job Seeker', 'Job Application', '1 year', '2025-11-09', '2025-11-10 07:36:07'),
-(51, 8, 'Trixie Ann G. Morales', 'Oath of Undertaking Job Seeker', 'Job Application', '1 year', '2025-11-03', '2025-11-10 07:36:15');
+(51, 8, 'Trixie Ann G. Morales', 'Oath of Undertaking Job Seeker', 'Job Application', '1 year', '2025-11-03', '2025-11-10 07:36:15'),
+(52, 8, 'Trixie Ann G. Morales', 'Oath of Undertaking Job Seeker', 'Job Application', '1 year', '2025-12-10', '2025-12-10 09:04:49');
 
 -- --------------------------------------------------------
 
@@ -385,7 +386,7 @@ INSERT INTO `indigency` (`indigency_id`, `resident_id`, `transactionNum`, `full_
 --
 
 CREATE TABLE `oath_job` (
-  `id` int(11) NOT NULL,
+  `oath_job_id` int(11) NOT NULL,
   `resident_id` int(11) DEFAULT NULL,
   `transaction_number` varchar(50) DEFAULT NULL,
   `full_name` varchar(255) NOT NULL,
@@ -400,10 +401,11 @@ CREATE TABLE `oath_job` (
 -- Dumping data for table `oath_job`
 --
 
-INSERT INTO `oath_job` (`id`, `resident_id`, `transaction_number`, `full_name`, `age`, `address`, `date_issued`, `date_created`, `date_updated`) VALUES
+INSERT INTO `oath_job` (`oath_job_id`, `resident_id`, `transaction_number`, `full_name`, `age`, `address`, `date_issued`, `date_created`, `date_updated`) VALUES
 (7, 8, 'IND-251109155653-046', 'Trixie Ann G. Morales', 23, 'Sampaloc, Manila', '2025-11-08', '2025-11-09 07:56:53', '2025-11-09 08:00:06'),
 (8, 7, 'IND-251109160050-734', 'Hanna N. Sarabia', 21, '123 General Tirona St.', '2025-11-09', '2025-11-09 08:00:50', '2025-11-10 07:25:28'),
-(9, 8, 'IND-251110152040-880', 'Trixie Ann G. Morales', 23, 'Sampaloc, Manila', '2025-11-03', '2025-11-10 07:20:40', '2025-11-10 07:26:46');
+(9, 8, 'IND-251110152040-880', 'Trixie Ann G. Morales', 23, 'Sampaloc, Manila', '2025-11-03', '2025-11-10 07:20:40', '2025-11-10 07:26:46'),
+(10, 8, 'IND-251210170449-217', 'Trixie Ann G. Morales', 23, 'Sampaloc, Manila', '2025-12-10', '2025-12-10 09:04:49', '2025-12-10 09:04:49');
 
 -- --------------------------------------------------------
 
@@ -691,7 +693,7 @@ ALTER TABLE `indigency`
 -- Indexes for table `oath_job`
 --
 ALTER TABLE `oath_job`
-  ADD PRIMARY KEY (`id`),
+  ADD PRIMARY KEY (`oath_job_id`),
   ADD KEY `fk_oath_job_resident` (`resident_id`);
 
 --
@@ -782,7 +784,7 @@ ALTER TABLE `cash_assistance`
 -- AUTO_INCREMENT for table `certificates`
 --
 ALTER TABLE `certificates`
-  MODIFY `certificate_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
+  MODIFY `certificate_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
 
 --
 -- AUTO_INCREMENT for table `certificate_of_action`
@@ -818,7 +820,7 @@ ALTER TABLE `indigency`
 -- AUTO_INCREMENT for table `oath_job`
 --
 ALTER TABLE `oath_job`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `oath_job_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `permit_to_travel`

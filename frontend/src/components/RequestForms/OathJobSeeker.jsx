@@ -8,8 +8,6 @@ import html2canvas from 'html2canvas';
 
 import { useCertificateManager } from '../../hooks/useCertificateManager';
 
-
-
 // Import Material UI components at the top of your file
 import {
   Container,
@@ -400,7 +398,8 @@ const {
 
   // Store certificate data in localStorage for QR code verification
   function storeCertificateData(certificateData) {
-    if (!certificateData.id) return;
+    // CHANGED: Use oath_job_id as the key
+    if (!certificateData.oath_job_id) return;
 
     // Get existing certificates from localStorage
     const existingCertificates = JSON.parse(
@@ -408,7 +407,8 @@ const {
     );
 
     // Add or update the certificate
-    existingCertificates[certificateData.id] = certificateData;
+    // CHANGED: Use oath_job_id as the key
+    existingCertificates[certificateData.oath_job_id] = certificateData;
 
     // Store back to localStorage
     localStorage.setItem('certificates', JSON.stringify(existingCertificates));
@@ -441,7 +441,8 @@ const {
     setRecords(
       Array.isArray(data)
         ? data.map((r) => ({
-            id: r.id,
+            // CHANGED: Map r.oath_job_id to oath_job_id
+            oath_job_id: r.oath_job_id,
             // Make sure to include resident_id from the API response
             resident_id: r.resident_id || null,
             name: r.full_name,
@@ -496,7 +497,8 @@ async function handleCreate() {
     const created = await res.json();
     const newRec = {
       ...updatedFormData,
-      id: created.id,
+      // CHANGED: Use created.oath_job_id
+      oath_job_id: created.oath_job_id,
     };
     setRecords([newRec, ...records]);
     setSelectedRecord(newRec);
@@ -510,7 +512,8 @@ async function handleCreate() {
       request_reason: 'Job Application', // Explicitly set the reason
       validity_period: newRec.validity_period,
       date_issued: newRec.dateIssued,
-      reference_id: created.id, // Add reference to the oath record
+      // CHANGED: Use created.oath_job_id
+      reference_id: created.oath_job_id, // Add reference to the oath record
     }, true);
     
     resetForm();
@@ -536,8 +539,9 @@ async function handleUpdate() {
       body: JSON.stringify(toServerPayload(updatedFormData)),
     });
     if (!res.ok) throw new Error('Update failed');
-    const updatedRec = { ...updatedFormData, id: editingId };
-    setRecords(records.map((r) => (r.id === editingId ? updatedRec : r)));
+    const updatedRec = { ...updatedFormData, oath_job_id: editingId };
+    // CHANGED: Compare using oath_job_id
+    setRecords(records.map((r) => (r.oath_job_id === editingId ? updatedRec : r)));
     setSelectedRecord(updatedRec);
     storeCertificateData(updatedRec);
     
@@ -569,7 +573,8 @@ async function handleUpdate() {
     age: record.age || '',
     dateIssued: record.dateIssued || new Date().toISOString().split('T')[0],
   });
-  setEditingId(record.id);
+  // CHANGED: Use record.oath_job_id
+  setEditingId(record.oath_job_id);
   setIsFormOpen(true);
   setActiveTab('form');
 }
@@ -581,8 +586,10 @@ async function handleUpdate() {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Delete failed');
-      setRecords(records.filter((r) => r.id !== id));
-      if (selectedRecord?.id === id) setSelectedRecord(null);
+      // CHANGED: Filter using oath_job_id
+      setRecords(records.filter((r) => r.oath_job_id !== id));
+      // CHANGED: Compare using oath_job_id
+      if (selectedRecord?.oath_job_id === id) setSelectedRecord(null);
       const existingCertificates = JSON.parse(
         localStorage.getItem('certificates') || '{}'
       );
@@ -600,7 +607,8 @@ async function handleUpdate() {
   function handleView(record) {
     setSelectedRecord(record);
     setFormData({ ...record });
-    setEditingId(record.id);
+    // CHANGED: Use record.oath_job_id
+    setEditingId(record.oath_job_id);
     setIsFormOpen(true);
     setActiveTab('form');
   }
@@ -633,7 +641,8 @@ async function handleUpdate() {
 
   useEffect(() => {
     const generateQRCode = async () => {
-      if (display.id || display.name) {
+      // CHANGED: Use oath_job_id for the condition
+      if (display.oath_job_id || display.name) {
         // Store the certificate data in localStorage
         storeCertificateData(display);
 
@@ -641,7 +650,7 @@ async function handleUpdate() {
         // Using window.location.origin to get the current domain
         const verificationUrl = `${
           window.location.origin
-        }/verify-oath-job-seeker?id=${display.id || 'draft'}`;
+        }/verify-oath-job-seeker?id=${display.oath_job_id || 'draft'}`;
 
         const qrContent = `CERTIFICATE VERIFICATION:
         𝗧𝗿𝗮𝗻𝘀𝗮𝗰𝘁𝗶𝗼𝗻 𝗡𝗼: ${display.transaction_number || 'N/A'}
@@ -681,9 +690,10 @@ async function handleUpdate() {
   }, [display]);
 
   const handleQrCodeClick = () => {
-    if (display.id) {
+    // CHANGED: Use oath_job_id for the condition
+    if (display.oath_job_id) {
       // Open the verification URL in a new tab
-      const verificationUrl = `${window.location.origin}/verify-oath-job-seeker?id=${display.id}`;
+      const verificationUrl = `${window.location.origin}/verify-oath-job-seeker?id=${display.oath_job_id}`;
       window.open(verificationUrl, '_blank');
     } else {
       // Show a dialog with the certificate details (for unsaved draft)
@@ -693,7 +703,8 @@ async function handleUpdate() {
 
   // ---------- PDF + Print ----------
   async function generatePDF() {
-    if (!display.id) {
+    // CHANGED: Use oath_job_id for the condition
+    if (!display.oath_job_id) {
       alert('Please save the record first before downloading PDF');
       return;
     }
@@ -738,7 +749,8 @@ async function handleUpdate() {
       pdf.setFont(undefined, 'normal');
       const details = [
         `Certificate Type: Oath of Undertaking Job Seeker`,
-        `Certificate ID: ${display.id || 'Draft'}`,
+        // CHANGED: Use oath_job_id
+        `Certificate ID: ${display.oath_job_id || 'Draft'}`,
         `Transaction Number: ${display.transaction_number || 'N/A'}`,
         `Full Name: ${display.name || ''}`,
         `Address: ${display.address || ''}`,
@@ -748,7 +760,8 @@ async function handleUpdate() {
         `Date Created (E-Signature Applied): ${display.dateCreated ? formatDateTimeDisplay(display.dateCreated) : new Date().toLocaleString()}`,
         ``,
         `VERIFICATION:`,
-        `Scan the QR code on the certificate or visit: ${window.location.origin}/verify-oath-job-seeker?id=${display.id || 'Draft'}`,
+        // CHANGED: Use oath_job_id
+        `Scan the QR code on the certificate or visit: ${window.location.origin}/verify-oath-job-seeker?id=${display.oath_job_id || 'Draft'}`,
       ];
       let yPos = 1.2;
       const lineHeight = 0.25;
@@ -767,7 +780,8 @@ async function handleUpdate() {
   }
 
   function handlePrint() {
-    if (!display.id) {
+    // CHANGED: Use oath_job_id for the condition
+    if (!display.oath_job_id) {
       alert('Please save the record first before printing');
       return;
     }
@@ -1066,7 +1080,8 @@ async function handleUpdate() {
                       color="primary" 
                       onClick={handleQrCodeClick} 
                       startIcon={<QrCodeIcon />} 
-                      disabled={!display.id}
+                      // CHANGED: Use oath_job_id for the disabled condition
+                      disabled={!display.oath_job_id}
                       size="small"
                     >
                       Verify
@@ -1077,7 +1092,8 @@ async function handleUpdate() {
                       variant="contained" 
                       color="secondary" 
                       onClick={generatePDF} 
-                      disabled={!display.id || isGeneratingPDF} 
+                      // CHANGED: Use oath_job_id for the disabled condition
+                      disabled={!display.oath_job_id || isGeneratingPDF} 
                       startIcon={<FileTextIcon />}
                       size="small"
                     >
@@ -1088,7 +1104,8 @@ async function handleUpdate() {
                     <Button 
                       variant="outlined" 
                       onClick={handlePrint} 
-                      disabled={!display.id}
+                      // CHANGED: Use oath_job_id for the disabled condition
+                      disabled={!display.oath_job_id}
                       startIcon={<PrintIcon />}
                       size="small"
                     >
@@ -1711,7 +1728,7 @@ async function handleUpdate() {
                   ) : (
                     <Stack spacing={2}>
                       {filteredRecords.map((record) => (
-                        <Card key={record.id} sx={{ 
+                        <Card key={record.oath_job_id} sx={{ 
                           cursor: "pointer",
                           transition: "all 0.2s ease",
                           borderLeft: 4,
@@ -1760,7 +1777,7 @@ async function handleUpdate() {
                                 <Tooltip title="Delete">
                                   <IconButton 
                                     size="small" 
-                                    onClick={() => handleDelete(record.id)} 
+                                    onClick={() => handleDelete(record.oath_job_id)} 
                                     color="error"
                                   >
                                     <DeleteIcon />
@@ -1828,7 +1845,7 @@ async function handleUpdate() {
                   ) : (
                     <Stack spacing={2}>
                       {transactionFilteredRecords.map((r) => (
-                        <Card key={r.id} sx={{ 
+                        <Card key={r.oath_job_id} sx={{ 
                           cursor: "pointer",
                           transition: "all 0.2s ease",
                           borderLeft: 4,
@@ -1924,7 +1941,8 @@ async function handleUpdate() {
                 variant="body1"
                 sx={{ fontWeight: 600, color: 'text.primary' }}
               >
-                {display.id || 'Draft (Not yet saved)'}
+                {/* CHANGED: Use oath_job_id */}
+                {display.oath_job_id || 'Draft (Not yet saved)'}
               </Typography>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -1997,10 +2015,12 @@ async function handleUpdate() {
           <Button onClick={() => setQrDialogOpen(false)} color="primary">
             Close
           </Button>
-          {display.id && (
+          {/* CHANGED: Use oath_job_id for the condition */}
+          {display.oath_job_id && (
             <Button
               onClick={() => {
-                const verificationUrl = `${window.location.origin}/verify-oath-job-seeker?id=${display.id}`;
+                // CHANGED: Use oath_job_id
+                const verificationUrl = `${window.location.origin}/verify-oath-job-seeker?id=${display.oath_job_id}`;
                 window.open(verificationUrl, '_blank');
                 setQrDialogOpen(false);
               }}
@@ -2062,9 +2082,10 @@ function OathJobVerification() {
     fetch(`http://localhost:5000/oath-job/${id}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data && data.id) {
+        if (data && data.oath_job_id) {
+          // CHANGED: Map oath_job_id from API response
           setRecord({
-            id: data.id,
+            oath_job_id: data.oath_job_id,
             name: data.full_name,
             address: data.address,
             age: data.age,
@@ -2085,7 +2106,8 @@ function OathJobVerification() {
 
   React.useEffect(() => {
     if (record) {
-      const verificationUrl = `${window.location.origin}/verify-oath-job-seeker?id=${record.id}`;
+      // CHANGED: Use oath_job_id in the URL
+      const verificationUrl = `${window.location.origin}/verify-oath-job-seeker?id=${record.oath_job_id}`;
       const qrData = `OATH JOB SEEKER CERTIFICATE\nTransaction Number: ${record.transaction_number || 'N/A'}\nName: ${record.name}\nDate Issued: ${record.dateIssued}\nURL: ${verificationUrl}`;
       import('qrcode').then((QR) => {
         QR.toDataURL(qrData).then(setQrCodeUrl);
@@ -2119,8 +2141,10 @@ function OathJobVerification() {
   };
 
   const handleQrCodeClick = () => {
-    if (record?.id) {
-      const url = `${window.location.origin}/verify-oath-job-seeker?id=${record.id}`;
+    // CHANGED: Use oath_job_id for the condition
+    if (record?.oath_job_id) {
+      // CHANGED: Use oath_job_id in the URL
+      const url = `${window.location.origin}/verify-oath-job-seeker?id=${record.oath_job_id}`;
       window.open(url, '_blank');
     }
   };

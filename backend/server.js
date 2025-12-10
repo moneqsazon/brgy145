@@ -1942,6 +1942,7 @@ app.delete('/permit-to-travel/:id', async (req, res) => {
   }
 });
 
+
 /**
  * OATH JOB SEEKER CRUD
  */
@@ -1961,12 +1962,12 @@ app.get('/oath-job', async (req, res) => {
   }
 });
 
-// GET /oath-job/:id - Get a single oath_job record by ID
-app.get('/oath-job/:id', async (req, res) => {
-  const { id } = req.params;
+// GET /oath-job/:oath_job_id - Get a single oath_job record by ID
+app.get('/oath-job/:oath_job_id', async (req, res) => {
+  const { oath_job_id } = req.params;
   try {
-    const [rows] = await pool.query('SELECT * FROM oath_job WHERE id = ?', [
-      id,
+    const [rows] = await pool.query('SELECT * FROM oath_job WHERE oath_job_id = ?', [
+      oath_job_id,
     ]);
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Record not found' });
@@ -1998,9 +1999,9 @@ app.post('/oath-job', async (req, res) => {
     );
     res.status(201).json({
       message: 'Record created successfully',
-      id: result.insertId,
+      oath_job_id: result.insertId, // Changed from id to oath_job_id
       transaction_number: transaction_number,
-      ...req.body, // Return the submitted data
+      ...req.body, // Return submitted data
     });
   } catch (err) {
     console.error('Error creating oath_job record:', err);
@@ -2010,9 +2011,9 @@ app.post('/oath-job', async (req, res) => {
   }
 });
 
-// PUT /oath-job/:id - Update an existing oath_job record
-app.put('/oath-job/:id', async (req, res) => {
-  const { id } = req.params;
+// PUT /oath-job/:oath_job_id - Update an existing oath_job record
+app.put('/oath-job/:oath_job_id', async (req, res) => {
+  const { oath_job_id } = req.params;
   const { resident_id, full_name, age, address, date_issued } = req.body;
 
   // Basic validation
@@ -2022,8 +2023,8 @@ app.put('/oath-job/:id', async (req, res) => {
 
   try {
     const [result] = await pool.query(
-      'UPDATE oath_job SET resident_id = ?, full_name = ?, age = ?, address = ?, date_issued = ? WHERE id = ?',
-      [resident_id, full_name, age, address, date_issued, id]
+      'UPDATE oath_job SET resident_id = ?, full_name = ?, age = ?, address = ?, date_issued = ? WHERE oath_job_id = ?',
+      [resident_id, full_name, age, address, date_issued, oath_job_id]
     );
 
     if (result.affectedRows === 0) {
@@ -2031,7 +2032,7 @@ app.put('/oath-job/:id', async (req, res) => {
         .status(404)
         .json({ message: 'Record not found or no changes made.' });
     }
-    res.json({ message: 'Record updated successfully', id: id, ...req.body });
+    res.json({ message: 'Record updated successfully', oath_job_id: oath_job_id, ...req.body });
   } catch (err) {
     console.error('Error updating oath_job record:', err);
     res
@@ -2040,17 +2041,17 @@ app.put('/oath-job/:id', async (req, res) => {
   }
 });
 
-// DELETE /oath-job/:id - Delete an oath_job record
-app.delete('/oath-job/:id', async (req, res) => {
-  const { id } = req.params;
+// DELETE /oath-job/:oath_job_id - Delete an oath_job record
+app.delete('/oath-job/:oath_job_id', async (req, res) => {
+  const { oath_job_id } = req.params;
   try {
-    const [result] = await pool.query('DELETE FROM oath_job WHERE id = ?', [
-      id,
+    const [result] = await pool.query('DELETE FROM oath_job WHERE oath_job_id = ?', [
+      oath_job_id,
     ]);
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Record not found' });
     }
-    res.json({ message: 'Record deleted successfully', id: id });
+    res.json({ message: 'Record deleted successfully', oath_job_id: oath_job_id });
   } catch (err) {
     console.error('Error deleting oath_job record:', err);
     res
